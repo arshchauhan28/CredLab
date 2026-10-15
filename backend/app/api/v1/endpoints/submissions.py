@@ -544,5 +544,48 @@ async def get_submission_feedback(
             response.raise_for_status()
             feedback = response.json()["choices"][0]["message"]["content"]
         return {"submission_id": submission.id, "feedback": feedback, "source": "ai_assisted", "evaluation_status": submission.status.value if hasattr(submission.status, "value") else str(submission.status)}
-    except Exception:
-        raise HTTPException(status_code=502, detail="The AI provider could not generate feedback. Check its configuration and try again.") from None
+    except HTTPException:
+        raise
+
+    except httpx.TimeoutException:
+        print("AI feedback error: The provider request timed out.")
+
+        raise HTTPException(
+            status_code=504,
+            detail="The AI provider timed out. Please try again."
+        ) from None
+
+    except httpx.HTTPStatusError as exc:
+        # Log the provider's HTTP status and a limited response body.
+        # Never log request headers, API keys, or authorization tokens.
+        print(f"AI provider HTTP status: {exc.response.status_code}")
+        print(f"AI provider response: {exc.response.text[:1000]}")
+
+        raise HTTPException(
+            status_code=502,
+            detail="The AI provider rejected or could not process the request. Check the backend logs."
+        ) from None
+
+    except httpx.RequestError as exc:
+        print(f"AI provider connection error: {type(exc).__name__}")
+
+        raise HTTPException(
+            status_code=502,
+            detail="Could not connect to the AI provider. Check the backend logs."
+        ) from None
+
+    except (KeyError, IndexError, TypeError, ValueError) as exc:
+        print(f"AI provider returned an unexpected response: {type(exc).__name__}")
+
+        raise HTTPException(
+            status_code=502,
+            detail="The AI provider returned an unexpected response."
+        ) from None
+
+    except Exception as exc:
+        print(f"Unexpected AI feedback error: {type(exc).__name__}")
+
+        raise HTTPException(
+            status_code=502,
+            detail="AI feedback failed unexpectedly. Check the backend logs."
+        ) from None
