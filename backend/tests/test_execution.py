@@ -14,6 +14,7 @@ from app.services.judge0 import (
     Judge0Exception,
     Judge0TimeoutException,
     Judge0UnavailableException,
+    UnsupportedLanguageException,
     judge0_service,
     normalize_judge0_status,
 )
@@ -45,22 +46,27 @@ def student_headers(test_student) -> dict:
 # ==============================================================================
 
 def test_language_mapping_bidirectional():
-    """Verifies all required platform languages map to expected Judge0 IDs."""
+    """Verifies all required platform languages map to expected Judge0 IDs and only 4 exist."""
     expected_mappings = {
         "python": 71,
-        "javascript": 63,
-        "typescript": 74,
+        "c": 50,
         "cpp": 54,
         "java": 62,
-        "c": 50,
-        "go": 60,
-        "rust": 73,
     }
+
+    assert len(PLATFORM_TO_JUDGE0_LANG_ID) == 4
+    assert set(PLATFORM_TO_JUDGE0_LANG_ID.keys()) == {"python", "c", "cpp", "java"}
 
     for lang, expected_id in expected_mappings.items():
         assert PLATFORM_TO_JUDGE0_LANG_ID[lang] == expected_id
         assert JUDGE0_LANG_ID_TO_PLATFORM[expected_id] == lang
         assert judge0_service.get_language_id(lang) == expected_id
+
+    # Former languages must raise UnsupportedLanguageException
+    for former_lang in ["javascript", "typescript", "go", "rust"]:
+        assert former_lang not in PLATFORM_TO_JUDGE0_LANG_ID
+        with pytest.raises(UnsupportedLanguageException):
+            judge0_service.get_language_id(former_lang)
 
 
 def test_status_normalization_categories():
@@ -120,11 +126,28 @@ def test_empty_source_code_rejected(client, student_headers):
     assert response.status_code == 422
 
 
-def test_unsupported_language_rejected(client, student_headers):
+@pytest.mark.parametrize("unsupported_lang", ["ruby", "javascript", "typescript", "go", "rust", "php", "csharp"])
+def test_unsupported_language_rejected(client, student_headers, unsupported_lang):
     """Unsupported programming language is rejected with 422."""
     response = client.post(
         "/api/execute",
-        json={"source_code": "puts 'hello'", "language": "ruby"},
+        json={"source_code": "puts 'hello'", "language": unsupported_lang},
+        headers=student_headers,
+    )
+    assert response.status_code == 422
+    assert "Unsupported language" in str(response.json())
+
+
+@pytest.mark.parametrize("unsupported_lang", ["javascript", "typescript", "go", "rust", "ruby"])
+def test_submission_unsupported_language_rejected(client, student_headers, unsupported_lang):
+    """Candidate submissions in unsupported languages are strictly rejected with 422."""
+    response = client.post(
+        "/api/submissions",
+        json={
+            "question_id": 1,
+            "source_code": "print('hello')",
+            "language": unsupported_lang,
+        },
         headers=student_headers,
     )
     assert response.status_code == 422

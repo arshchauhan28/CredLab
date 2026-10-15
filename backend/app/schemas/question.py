@@ -9,6 +9,7 @@ from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.question import QuestionDifficulty, QuestionStatus
+from app.services.judge0 import PLATFORM_TO_JUDGE0_LANG_ID
 
 
 def slugify(text: str) -> str:
@@ -70,6 +71,12 @@ class QuestionCreate(BaseModel):
         cleaned = [lang.strip().lower() for lang in v if lang and lang.strip()]
         if not cleaned:
             raise ValueError("At least one allowed programming language must be specified.")
+        unsupported = [lang for lang in cleaned if lang not in PLATFORM_TO_JUDGE0_LANG_ID]
+        if unsupported:
+            supported = ", ".join(PLATFORM_TO_JUDGE0_LANG_ID.keys())
+            raise ValueError(
+                f"Unsupported programming language(s): {', '.join(unsupported)}. Supported languages are: {supported}"
+            )
         return list(dict.fromkeys(cleaned))  # Deduplicate preserving order
 
 
@@ -99,6 +106,12 @@ class QuestionUpdate(BaseModel):
             cleaned = [lang.strip().lower() for lang in v if lang and lang.strip()]
             if not cleaned:
                 raise ValueError("At least one allowed programming language must be specified.")
+            unsupported = [lang for lang in cleaned if lang not in PLATFORM_TO_JUDGE0_LANG_ID]
+            if unsupported:
+                supported = ", ".join(PLATFORM_TO_JUDGE0_LANG_ID.keys())
+                raise ValueError(
+                    f"Unsupported programming language(s): {', '.join(unsupported)}. Supported languages are: {supported}"
+                )
             return list(dict.fromkeys(cleaned))
         return v
 

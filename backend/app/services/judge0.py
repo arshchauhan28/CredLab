@@ -5,8 +5,10 @@ submits source code and stdin to the Judge0 sandbox, and normalizes execution re
 """
 
 import asyncio
+import base64
 import logging
 from typing import Any, Dict, Optional, Tuple
+from urllib.parse import urlparse
 import httpx
 
 from app.core.config import settings
@@ -18,29 +20,30 @@ logger = logging.getLogger("secure_coding_platform.judge0")
 # Centralized Language Mapping
 # ==============================================================================
 # Platform slug -> Judge0 Language ID
-# Compatible with Judge0 CE / Extra CE:
+# Strictly supported languages:
 # - python: 71 (Python 3.8.1)
-# - javascript: 63 (JavaScript Node.js 12.14.0)
-# - typescript: 74 (TypeScript 3.7.4)
+# - c: 50 (C GCC 9.2.0)
 # - cpp: 54 (C++ GCC 9.2.0)
 # - java: 62 (Java OpenJDK 13.0.1)
-# - c: 50 (C GCC 9.2.0)
-# - go: 60 (Go 1.13.5)
-# - rust: 73 (Rust 1.40.0)
 PLATFORM_TO_JUDGE0_LANG_ID: Dict[str, int] = {
     "python": 71,
-    "javascript": 63,
-    "typescript": 74,
+    "c": 50,
     "cpp": 54,
     "java": 62,
-    "c": 50,
-    "go": 60,
-    "rust": 73,
+}
+
+# Historical Judge0 IDs preserved for graceful legacy submission decoding
+HISTORICAL_JUDGE0_LANG_IDS: Dict[int, str] = {
+    63: "javascript",
+    74: "typescript",
+    60: "go",
+    73: "rust",
 }
 
 # Reverse mapping: Judge0 ID -> Platform slug
 JUDGE0_LANG_ID_TO_PLATFORM: Dict[int, str] = {
-    v: k for k, v in PLATFORM_TO_JUDGE0_LANG_ID.items()
+    **HISTORICAL_JUDGE0_LANG_IDS,
+    **{v: k for k, v in PLATFORM_TO_JUDGE0_LANG_ID.items()},
 }
 
 
@@ -139,6 +142,10 @@ class Judge0Service:
             # Also support RapidAPI header format if endpoint is on RapidAPI
             if "rapidapi" in self.api_url.lower():
                 headers["X-RapidAPI-Key"] = self.api_key
+                try:
+                    headers["X-RapidAPI-Host"] = urlparse(self.api_url).netloc
+                except Exception:
+                    pass
         return headers
 
     def get_language_id(self, platform_lang: str) -> int:
@@ -158,9 +165,10 @@ class Judge0Service:
         """
         Deterministic mock execution response for offline development and testing.
         Activated when settings.EXECUTION_MOCK_MODE is True.
+        Never executes arbitrary code via unsandboxed host subprocesses.
         """
         logger.info(f"[MOCK MODE] Simulating execution for language={language}")
-        await asyncio.sleep(0.05)  # Simulate minimal async latency
+        await asyncio.sleep(0.01)  # Minimal async latency for test speed
 
         # Check for error triggers in test cases
         if "MOCK_TRIGGER: COMPILATION_ERROR" in source_code:
@@ -173,6 +181,8 @@ class Judge0Service:
                 "compile_output": "error: expected ';' before 'return'\n 12 |   return 0\n    |          ^",
                 "time_ms": 15,
                 "memory_kb": 1240,
+                "time": "0.015",
+                "memory": 1240,
                 "exit_code": 1,
             }
 
@@ -186,6 +196,8 @@ class Judge0Service:
                 "compile_output": "",
                 "time_ms": 22,
                 "memory_kb": 2540,
+                "time": "0.022",
+                "memory": 2540,
                 "exit_code": 1,
             }
 
@@ -199,6 +211,8 @@ class Judge0Service:
                 "compile_output": "",
                 "time_ms": 2005,
                 "memory_kb": 8420,
+                "time": "2.005",
+                "memory": 8420,
                 "exit_code": None,
             }
 
@@ -212,226 +226,29 @@ class Judge0Service:
                 "compile_output": "",
                 "time_ms": 110,
                 "memory_kb": 128000,
+                "time": "0.110",
+                "memory": 128000,
                 "exit_code": 137,
             }
 
+        # Keep compatibility with test_mock_mode_execution unit test and general testing
+        output = f"Output for {language} solution\n"
+        if stdin and stdin.strip():
+            output += f"Received input:\n{stdin}\n"
 
-        # Keep compatibility with test_mock_mode_execution unit test
-        if source_code.strip() == "print('hello')" and stdin == "test_input":
-            output = f"Output for {language} solution\n"
-            if stdin and stdin.strip():
-                output += f"Received input:\n{stdin}\n"
-            return {
-                "status": "Accepted",
-                "status_id": 3,
-                "status_description": "Accepted",
-                "stdout": output,
-                "stderr": "",
-                "compile_output": "",
-                "time_ms": 38,
-                "memory_kb": 3420,
-                "exit_code": 0,
-            }
-
-        # Real local execution for offline / development sandbox
-        return await self._execute_local(source_code, language, stdin)
-
-    async def _execute_local(self, source_code: str, language: str, stdin: str) -> Dict[str, Any]:
-        """
-        Safely executes code locally in development mode when Judge0 container is unavailable.
-        Supports Python, Node.js, and C++.
-        """
-        import os
-        import sys
-        import time
-        import tempfile
-        import subprocess
-
-        timeout_sec = min(float(settings.JUDGE0_CPU_TIME_LIMIT), 5.0)
-        start_time = time.perf_counter()
-
-        try:
-            if language == "python":
-                proc = await asyncio.to_thread(
-                    subprocess.run,
-                    [sys.executable, "-u", "-c", source_code],
-                    input=stdin or "",
-                    capture_output=True,
-                    text=True,
-                    timeout=timeout_sec,
-                )
-                elapsed_ms = int((time.perf_counter() - start_time) * 1000)
-
-                if proc.returncode == 0:
-                    return {
-                        "status": "Accepted",
-                        "status_id": 3,
-                        "status_description": "Accepted",
-                        "stdout": proc.stdout,
-                        "stderr": proc.stderr,
-                        "compile_output": "",
-                        "time_ms": elapsed_ms,
-                        "memory_kb": 3200,
-                        "exit_code": 0,
-                    }
-                else:
-                    return {
-                        "status": "Runtime Error",
-                        "status_id": 11,
-                        "status_description": "Runtime Error (NZEC)",
-                        "stdout": proc.stdout,
-                        "stderr": proc.stderr,
-                        "compile_output": "",
-                        "time_ms": elapsed_ms,
-                        "memory_kb": 3200,
-                        "exit_code": proc.returncode,
-                    }
-
-            elif language in ("javascript", "typescript"):
-                proc = await asyncio.to_thread(
-                    subprocess.run,
-                    ["node", "-e", source_code],
-                    input=stdin or "",
-                    capture_output=True,
-                    text=True,
-                    timeout=timeout_sec,
-                )
-                elapsed_ms = int((time.perf_counter() - start_time) * 1000)
-
-                if proc.returncode == 0:
-                    return {
-                        "status": "Accepted",
-                        "status_id": 3,
-                        "status_description": "Accepted",
-                        "stdout": proc.stdout,
-                        "stderr": proc.stderr,
-                        "compile_output": "",
-                        "time_ms": elapsed_ms,
-                        "memory_kb": 12400,
-                        "exit_code": 0,
-                    }
-                else:
-                    return {
-                        "status": "Runtime Error",
-                        "status_id": 11,
-                        "status_description": "Runtime Error (NZEC)",
-                        "stdout": proc.stdout,
-                        "stderr": proc.stderr,
-                        "compile_output": "",
-                        "time_ms": elapsed_ms,
-                        "memory_kb": 12400,
-                        "exit_code": proc.returncode,
-                    }
-
-            elif language in ("cpp", "c"):
-                with tempfile.TemporaryDirectory() as tmpdir:
-                    src_file = os.path.join(tmpdir, "solution.cpp" if language == "cpp" else "solution.c")
-                    exe_file = os.path.join(tmpdir, "solution.exe")
-                    with open(src_file, "w", encoding="utf-8") as f:
-                        f.write(source_code)
-
-                    compiler = "g++" if language == "cpp" else "gcc"
-                    comp_proc = await asyncio.to_thread(
-                        subprocess.run,
-                        [compiler, "-O2", src_file, "-o", exe_file],
-                        capture_output=True,
-                        text=True,
-                        timeout=timeout_sec,
-                    )
-
-                    if comp_proc.returncode != 0:
-                        return {
-                            "status": "Compilation Error",
-                            "status_id": 6,
-                            "status_description": "Compilation Error",
-                            "stdout": "",
-                            "stderr": comp_proc.stderr,
-                            "compile_output": comp_proc.stderr,
-                            "time_ms": 10,
-                            "memory_kb": 1024,
-                            "exit_code": comp_proc.returncode,
-                        }
-
-                    run_proc = await asyncio.to_thread(
-                        subprocess.run,
-                        [exe_file],
-                        input=stdin or "",
-                        capture_output=True,
-                        text=True,
-                        timeout=timeout_sec,
-                    )
-                    elapsed_ms = int((time.perf_counter() - start_time) * 1000)
-
-                    if run_proc.returncode == 0:
-                        return {
-                            "status": "Accepted",
-                            "status_id": 3,
-                            "status_description": "Accepted",
-                            "stdout": run_proc.stdout,
-                            "stderr": run_proc.stderr,
-                            "compile_output": "",
-                            "time_ms": elapsed_ms,
-                            "memory_kb": 2048,
-                            "exit_code": 0,
-                        }
-                    else:
-                        return {
-                            "status": "Runtime Error",
-                            "status_id": 11,
-                            "status_description": "Runtime Error (NZEC)",
-                            "stdout": run_proc.stdout,
-                            "stderr": run_proc.stderr,
-                            "compile_output": "",
-                            "time_ms": elapsed_ms,
-                            "memory_kb": 2048,
-                            "exit_code": run_proc.returncode,
-                        }
-
-            else:
-                output = f"Output for {language} solution\n"
-                if stdin and stdin.strip():
-                    output += f"Received input:\n{stdin}\n"
-                return {
-                    "status": "Accepted",
-                    "status_id": 3,
-                    "status_description": "Accepted",
-                    "stdout": output,
-                    "stderr": "",
-                    "compile_output": "",
-                    "time_ms": 38,
-                    "memory_kb": 3420,
-                    "exit_code": 0,
-                }
-
-        except subprocess.TimeoutExpired:
-            return {
-                "status": "Time Limit Exceeded",
-                "status_id": 5,
-                "status_description": "Time Limit Exceeded",
-                "stdout": "",
-                "stderr": f"Execution timed out (exceeded {timeout_sec}s CPU time limit)",
-                "compile_output": "",
-                "time_ms": int(timeout_sec * 1000),
-                "memory_kb": 4096,
-                "exit_code": None,
-            }
-        except Exception as exc:
-            logger.warning(f"Local mock execution failed for {language}: {exc}")
-            output = f"Output for {language} solution\n"
-            if stdin and stdin.strip():
-                output += f"Received input:\n{stdin}\n"
-            return {
-                "status": "Accepted",
-                "status_id": 3,
-                "status_description": "Accepted",
-                "stdout": output,
-                "stderr": "",
-                "compile_output": "",
-                "time_ms": 38,
-                "memory_kb": 3420,
-                "exit_code": 0,
-            }
-
+        return {
+            "status": "Accepted",
+            "status_id": 3,
+            "status_description": "Accepted",
+            "stdout": output,
+            "stderr": "",
+            "compile_output": "",
+            "time_ms": 38,
+            "memory_kb": 3420,
+            "time": "0.038",
+            "memory": 3420,
+            "exit_code": 0,
+        }
 
     async def execute_code(
         self,
@@ -446,7 +263,7 @@ class Judge0Service:
 
         Args:
             source_code: Raw source code string.
-            language: Platform language slug (e.g. 'python', 'cpp').
+            language: Platform language slug (e.g. 'python', 'cpp', 'c', 'java').
             stdin: Standard input provided to the program.
             cpu_time_limit: Server-controlled CPU timeout in seconds.
             memory_limit_kb: Server-controlled memory limit in KB.
@@ -462,6 +279,8 @@ class Judge0Service:
                 "compile_output": str,
                 "time_ms": int,
                 "memory_kb": int,
+                "time": Optional[str],
+                "memory": Optional[int],
                 "exit_code": Optional[int]
             }
         """
@@ -475,15 +294,19 @@ class Judge0Service:
         applied_cpu_limit = cpu_time_limit or settings.JUDGE0_CPU_TIME_LIMIT
         applied_memory_limit = memory_limit_kb or settings.JUDGE0_MEMORY_LIMIT_KB
 
+        # Base64-encode source_code and stdin to prevent encoding issues (e.g. GCC curly quotes)
+        encoded_source = base64.b64encode(source_code.encode("utf-8")).decode("ascii")
+        encoded_stdin = base64.b64encode((stdin or "").encode("utf-8")).decode("ascii")
+
         payload = {
-            "source_code": source_code,
+            "source_code": encoded_source,
             "language_id": lang_id,
-            "stdin": stdin or "",
+            "stdin": encoded_stdin,
             "cpu_time_limit": applied_cpu_limit,
             "memory_limit": applied_memory_limit,
         }
 
-        submission_url = f"{self.api_url}/submissions?base64_encoded=false&wait=true"
+        submission_url = f"{self.api_url}/submissions?base64_encoded=true&wait=true"
 
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
@@ -510,8 +333,6 @@ class Judge0Service:
 
                 if status_id in (1, 2) and token:
                     data = await self._poll_submission(client, token)
-                    raw_status = data.get("status", {})
-                    status_id = raw_status.get("id", 1)
 
                 return self._parse_judge0_result(data)
 
@@ -535,8 +356,8 @@ class Judge0Service:
         """
         Polls for submission completion when wait=true returns a pending status.
         """
-        poll_url = f"{self.api_url}/submissions/{token}?base64_encoded=false"
-        max_attempts = 15
+        poll_url = f"{self.api_url}/submissions/{token}?base64_encoded=true"
+        max_attempts = 20
         poll_interval = 0.25
 
         for _ in range(max_attempts):
@@ -547,8 +368,20 @@ class Judge0Service:
                 status_id = data.get("status", {}).get("id", 1)
                 if status_id not in (1, 2):
                     return data
+            elif resp.status_code == 429:
+                await asyncio.sleep(0.5)
 
         raise Judge0TimeoutException("Execution timed out waiting for sandbox result.")
+
+    @staticmethod
+    def _safe_b64decode(val: Optional[str]) -> str:
+        """Safely decodes base64-encoded strings with UTF-8 replacement."""
+        if not val:
+            return ""
+        try:
+            return base64.b64decode(val).decode("utf-8", errors="replace")
+        except Exception:
+            return str(val)
 
     def _parse_judge0_result(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -559,6 +392,21 @@ class Judge0Service:
         status_desc = raw_status.get("description", "Unknown")
 
         normalized_status, full_desc = normalize_judge0_status(status_id, status_desc)
+
+        # Base64-decode output streams
+        stdout = self._safe_b64decode(data.get("stdout"))
+        stderr = self._safe_b64decode(data.get("stderr"))
+        compile_output = self._safe_b64decode(data.get("compile_output"))
+        message = self._safe_b64decode(data.get("message"))
+
+        # If compile failed and compile_output is present, ensure status reflects compilation error
+        if compile_output and status_id != 6:
+            normalized_status = "Compilation Error"
+            status_id = 6
+
+        # If runtime error occurred with system message but no stderr, attach message
+        if message and not stderr and status_id != 3:
+            stderr = message
 
         # Parse execution time (seconds -> milliseconds)
         raw_time = data.get("time")
@@ -582,11 +430,13 @@ class Judge0Service:
             "status": normalized_status,
             "status_id": status_id,
             "status_description": full_desc,
-            "stdout": data.get("stdout") or "",
-            "stderr": data.get("stderr") or "",
-            "compile_output": data.get("compile_output") or "",
+            "stdout": stdout,
+            "stderr": stderr,
+            "compile_output": compile_output,
             "time_ms": time_ms,
             "memory_kb": memory_kb,
+            "time": f"{time_ms / 1000:.3f}" if time_ms is not None else None,
+            "memory": memory_kb,
             "exit_code": data.get("exit_code"),
         }
 

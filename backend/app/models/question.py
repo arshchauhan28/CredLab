@@ -122,7 +122,7 @@ class QuestionLanguage(Base):
         nullable=False,
         index=True,
     )
-    language = Column(String(50), nullable=False)  # e.g., 'python', 'cpp', 'java', 'javascript'
+    language = Column(String(50), nullable=False)  # e.g., 'python', 'c', 'cpp', 'java'
 
     __table_args__ = (
         UniqueConstraint("question_id", "language", name="uq_question_language"),

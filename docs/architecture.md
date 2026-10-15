@@ -74,7 +74,7 @@ The **Secure Coding Assessment Platform** is designed to provide high-integrity,
 ### Coding Workspace & Problem Solving View (Chunk 4) - Complete
 - [x] Interactive Monaco Editor integration (`@monaco-editor/react`) with syntax highlighting
 - [x] Multi-pane resizable layout (draggable horizontal & vertical splitters)
-- [x] Language switcher with starter boilerplate templates (Python, C++, Java, JS, TS, Go, Rust, C)
+- [x] Language switcher with starter boilerplate templates (Python, C, C++, Java)
 - [x] Question-filtered allowed languages enforcement
 - [x] Local code persistence and auto-save in localStorage per problem and language
 - [x] Reset code to boilerplate with confirmation dialog
@@ -84,7 +84,7 @@ The **Secure Coding Assessment Platform** is designed to provide high-integrity,
 ### Code Execution & Sandboxing (Chunk 5) - Complete
 - [x] Sandboxed execution integration with Judge0 CE / Extra CE
 - [x] Asynchronous HTTP client service (`Judge0Service` using `httpx.AsyncClient`)
-- [x] Centralized bidirectional language ID mapping (Python, JavaScript, TypeScript, C++, Java, C, Go, Rust)
+- [x] Centralized bidirectional language ID mapping (Python, C, C++, Java)
 - [x] Server-controlled execution boundaries (CPU time limit: 2.0s, Memory limit: 128 MB)
 - [x] Input and source code size protection (64 KB maximum)
 - [x] Status normalization (Accepted, Compilation Error, Runtime Error, Time Limit Exceeded, Memory Limit Exceeded, Internal Error)
@@ -151,13 +151,9 @@ The **Secure Coding Assessment Platform** is designed to provide high-integrity,
 | Platform Slug | Judge0 ID | Language Runtime / Compiler |
 | :--- | :--- | :--- |
 | `python` | `71` | Python 3.8.1 |
-| `javascript` | `63` | JavaScript (Node.js 12.14.0) |
-| `typescript` | `74` | TypeScript 3.7.4 |
+| `c` | `50` | C (GCC 9.2.0) |
 | `cpp` | `54` | C++ (GCC 9.2.0) |
 | `java` | `62` | Java (OpenJDK 13.0.1) |
-| `c` | `50` | C (GCC 9.2.0) |
-| `go` | `60` | Go 1.13.5 |
-| `rust` | `73` | Rust 1.40.0 |
 
 ### Local Development & Mock Mode
 When running without a local Judge0 Docker cluster, developers can enable:

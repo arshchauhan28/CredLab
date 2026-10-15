@@ -1,0 +1,64 @@
+services:
+  # CredLab Backend Web Service (FastAPI)
+  - type: web
+    name: credlab-backend
+    env: python
+    plan: free
+    region: oregon
+    branch: main
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt && alembic upgrade head"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: API_V1_STR
+        value: /api
+      # Set DATABASE_URL in Render Dashboard to your Neon / Supabase / Render PostgreSQL connection string
+      - key: DATABASE_URL
+        sync: false
+      # Set JWT_SECRET_KEY in Render Dashboard (e.g. openssl rand -hex 32)
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: JWT_ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "60"
+      # Judge0 execution provider: points to official hosted sandbox at zero cost
+      - key: JUDGE0_API_URL
+        value: https://ce.judge0.com
+      # Optional: set JUDGE0_API_KEY if using RapidAPI Judge0 or authenticated instance
+      - key: JUDGE0_API_KEY
+        sync: false
+      - key: JUDGE0_TIMEOUT_SECONDS
+        value: "15.0"
+      - key: JUDGE0_CPU_TIME_LIMIT
+        value: "2.0"
+      - key: JUDGE0_MEMORY_LIMIT_KB
+        value: "128000"
+      - key: EXECUTION_MOCK_MODE
+        value: "false"
+      # Add your deployed Vercel frontend URL to BACKEND_CORS_ORIGINS (e.g. https://credlab.vercel.app)
+      - key: BACKEND_CORS_ORIGINS
+        value: "https://localhost:3000,http://localhost:3000"
+      # Certificate signing settings
+      - key: CERTIFICATE_ISSUER_NAME
+        value: "CredLab Sentinel"
+      - key: CERTIFICATE_SCHEMA_VERSION
+        value: "1.0"
+      - key: CERTIFICATE_KEY_ID
+        value: "credlab-prod-2026"
+      - key: CERTIFICATE_DEV_KEY_AUTOGEN
+        value: "true"
+      # Optional AI generation key (OpenAI / Groq)
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_BASE_URL
+        value: https://api.openai.com/v1
+      - key: AI_MODEL
+        value: gpt-4o-mini

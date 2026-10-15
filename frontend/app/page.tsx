@@ -135,7 +135,7 @@ const workflows = [
 const stats = [
   { value: "100%", label: "Server-Verified Grading", sub: "Deterministic Sandboxes" },
   { value: "Ed25519", label: "Cryptographic Signing", sub: "Tamper-Proof Diplomas" },
-  { value: "4+", label: "Supported Languages", sub: "Python, C, C++, Java" },
+  { value: "4", label: "Supported Languages", sub: "Python, C, C++, Java" },
   { value: "< 250ms", label: "Sandbox Latency", sub: "Isolated Subprocess Worker" },
 ];
 

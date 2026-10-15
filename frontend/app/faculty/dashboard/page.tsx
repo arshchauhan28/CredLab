@@ -108,7 +108,7 @@ type Section =
   | "Certificates"
   | "Profile";
 
-const LANGS = ["python", "cpp", "c", "java", "javascript", "typescript", "go", "rust"];
+const LANGS = ["python", "cpp", "c", "java"];
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
@@ -174,7 +174,7 @@ export default function FacultyDashboardPage() {
     sample_input: "",
     sample_output: "",
   });
-  const [languages, setLanguages] = useState<string[]>(["python", "cpp", "c"]);
+  const [languages, setLanguages] = useState<string[]>(["python", "cpp", "c", "java"]);
 
   // Fetch practicals for the currently selected course
   const loadPracticalsForCourse = useCallback(async (cId: number) => {

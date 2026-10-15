@@ -260,3 +260,66 @@ def test_certificate_approvals_endpoints_faculty_access(client, db_session):
     # Student cannot access approvals endpoint
     res_stud = client.get("/api/certificates/approvals", headers=auth_header(student))
     assert res_stud.status_code == 403
+
+
+# ==============================================================================
+# Supported Language Policy Tests (Only Python, C, C++, Java)
+# ==============================================================================
+
+@pytest.mark.parametrize("unsupported_lang", ["javascript", "typescript", "go", "rust", "ruby"])
+def test_create_question_with_unsupported_language_returns_422(client, db_session, unsupported_lang):
+    """Creating a question with unsupported language fails validation with 422."""
+    admin = make_user(db_session, name=f"Admin {unsupported_lang}", email=f"admin_{unsupported_lang}@uni.edu", role=UserRole.ADMIN)
+
+    payload = {
+        "title": f"Question {unsupported_lang}",
+        "description": "Problem description",
+        "difficulty": "EASY",
+        "status": "DRAFT",
+        "allowed_languages": ["python", unsupported_lang],
+        "examples": [],
+    }
+    res = client.post("/api/questions", json=payload, headers=auth_header(admin))
+    assert res.status_code == 422
+    assert "Unsupported programming language" in str(res.json())
+
+
+def test_create_question_with_all_supported_languages_succeeds(client, db_session):
+    """Creating a question specifying all 4 supported languages succeeds."""
+    admin = make_user(db_session, name="Admin All4", email="admin_all4@uni.edu", role=UserRole.ADMIN)
+
+    payload = {
+        "title": "Quad Language Challenge",
+        "description": "Problem solvable in Python, C, C++, and Java",
+        "difficulty": "MEDIUM",
+        "status": "PUBLISHED",
+        "allowed_languages": ["python", "c", "cpp", "java"],
+        "examples": [],
+    }
+    res = client.post("/api/questions", json=payload, headers=auth_header(admin))
+    assert res.status_code == 201
+    assert set(res.json()["allowed_languages"]) == {"python", "c", "cpp", "java"}
+
+
+def test_update_question_with_unsupported_language_returns_422(client, db_session):
+    """Updating a question with unsupported language fails validation with 422."""
+    admin = make_user(db_session, name="Admin UpdateFail", email="admin_updatefail@uni.edu", role=UserRole.ADMIN)
+
+    # First create valid question
+    res = client.post("/api/questions", json={
+        "title": "Valid Initial Question",
+        "description": "Valid problem description",
+        "difficulty": "EASY",
+        "status": "DRAFT",
+        "allowed_languages": ["python"],
+        "examples": [],
+    }, headers=auth_header(admin))
+    assert res.status_code == 201
+    qid = res.json()["id"]
+
+    # Try updating with unsupported language
+    update_res = client.put(f"/api/questions/{qid}", json={
+        "allowed_languages": ["javascript", "rust"],
+    }, headers=auth_header(admin))
+    assert update_res.status_code == 422
+    assert "Unsupported programming language" in str(update_res.json())

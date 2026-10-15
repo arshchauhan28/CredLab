@@ -68,9 +68,9 @@ class Settings(BaseSettings):
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
     # Judge0 Code Execution Configuration (Chunk 5)
-    JUDGE0_API_URL: str = "http://localhost:2358"
+    JUDGE0_API_URL: str = "https://ce.judge0.com"
     JUDGE0_API_KEY: Union[str, None] = None
-    JUDGE0_TIMEOUT_SECONDS: float = 10.0
+    JUDGE0_TIMEOUT_SECONDS: float = 15.0
     JUDGE0_CPU_TIME_LIMIT: float = 2.0  # 2.0 seconds default CPU limit
     JUDGE0_MEMORY_LIMIT_KB: int = 128000  # 128 MB default memory limit in KB
     EXECUTION_MOCK_MODE: bool = False  # Set to True for offline/local deterministic mock execution

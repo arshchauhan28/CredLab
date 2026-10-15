@@ -73,6 +73,8 @@ class ExecuteCodeResponse(BaseModel):
     compile_output: Optional[str] = Field("", description="Compiler diagnostic messages if compilation failed")
     time_ms: Optional[int] = Field(None, description="Execution time in milliseconds")
     memory_kb: Optional[int] = Field(None, description="Memory consumption in kilobytes")
+    time: Optional[str] = Field(None, description="Execution time in seconds (formatted string)")
+    memory: Optional[int] = Field(None, description="Memory in kilobytes (UI alias)")
     exit_code: Optional[int] = Field(None, description="Process exit code")
 
     model_config = ConfigDict(from_attributes=True)

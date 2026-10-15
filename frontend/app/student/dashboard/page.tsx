@@ -149,26 +149,6 @@ const DEFAULT_LANGUAGES = [
     label: "Java 17",
     starter: "import java.util.*;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        // Write your solution here\n    }\n}\n",
   },
-  {
-    value: "javascript",
-    label: "JavaScript (Node.js)",
-    starter: '"use strict";\nconst fs = require("fs");\n\nfunction main() {\n    const input = fs.readFileSync(0, "utf-8");\n    // Write your solution here\n}\nmain();\n',
-  },
-  {
-    value: "typescript",
-    label: "TypeScript",
-    starter: 'import * as fs from "fs";\n\nfunction main(): void {\n    const input = fs.readFileSync(0, "utf-8");\n    // Write your solution here\n}\nmain();\n',
-  },
-  {
-    value: "go",
-    label: "Go",
-    starter: "package main\n\nimport (\n\t\"bufio\"\n\t\"fmt\"\n\t\"os\"\n)\n\nfunc main() {\n\tscanner := bufio.NewScanner(os.Stdin)\n\t_ = scanner\n\t// Write your solution here\n}\n",
-  },
-  {
-    value: "rust",
-    label: "Rust",
-    starter: "use std::io::{self, Read};\n\nfn main() {\n    let mut input = String::new();\n    io::stdin().read_to_string(&mut input).unwrap();\n    // Write your solution here\n}\n",
-  },
 ];
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
@@ -439,9 +419,12 @@ export default function StudentDashboardPage() {
         );
       }
       setQuestion(q);
-      const chosenLang = q.allowed_languages?.includes(language)
+      const validLangs = q.allowed_languages?.filter((l) =>
+        DEFAULT_LANGUAGES.some((dl) => dl.value === l),
+      );
+      const chosenLang = validLangs?.includes(language)
         ? language
-        : q.allowed_languages?.[0] || "python";
+        : validLangs?.[0] || "python";
       setLanguage(chosenLang);
       const starter =
         DEFAULT_LANGUAGES.find((l) => l.value === chosenLang)?.starter ||
@@ -480,9 +463,13 @@ export default function StudentDashboardPage() {
         stdout?: string;
         stderr?: string;
         compile_output?: string;
-        status?: { description: string };
+        status?: { description?: string } | string;
+        status_id?: number;
+        status_description?: string;
         time?: string;
+        time_ms?: number;
         memory?: number;
+        memory_kb?: number;
       }>("execute", {
         method: "POST",
         body: JSON.stringify({
@@ -493,15 +480,54 @@ export default function StudentDashboardPage() {
         }),
       });
 
-      const body =
-        result.stderr ||
-        result.compile_output ||
-        result.stdout ||
-        "Code executed successfully (no stdout produced).";
-      const tone = result.stderr || result.compile_output ? "bad" : "ok";
+      const rawStatus = result.status;
+      const statusStr =
+        typeof rawStatus === "string"
+          ? rawStatus
+          : rawStatus?.description || result.status_description || "";
+
+      const isAccepted = statusStr === "Accepted" || result.status_id === 3;
+      const tone: "ok" | "bad" = isAccepted ? "ok" : "bad";
+
+      let body = "";
+      if (result.compile_output && result.compile_output.trim()) {
+        body = result.compile_output;
+      } else if (statusStr === "Time Limit Exceeded" || result.status_id === 5) {
+        body = result.stderr || "Execution timed out (exceeded CPU time limit).";
+      } else if (result.stderr && result.stdout) {
+        body = `[Standard Output]\n${result.stdout}\n\n[Error Output]\n${result.stderr}`;
+      } else if (result.stderr) {
+        body = result.stderr;
+      } else if (result.stdout) {
+        body = result.stdout;
+      } else {
+        body = isAccepted
+          ? "Code executed successfully (no stdout produced)."
+          : "Process terminated without output.";
+      }
+
+      const runtimeStr =
+        result.time ||
+        (typeof result.time_ms === "number" ? `${(result.time_ms / 1000).toFixed(3)}s` : "");
+      const memKb =
+        typeof result.memory === "number"
+          ? result.memory
+          : typeof result.memory_kb === "number"
+            ? result.memory_kb
+            : null;
+
+      const metricParts: string[] = [];
+      if (runtimeStr) metricParts.push(`Runtime: ${runtimeStr}`);
+      if (memKb !== null) metricParts.push(`Memory: ${memKb}KB`);
+      if (metricParts.length > 0) {
+        body += `\n\n[${metricParts.join(" | ")}]`;
+      }
+
+      const title = statusStr || (isAccepted ? "Execution Successful" : "Execution Error");
+
       setConsoleResult({
-        title: result.status?.description || (tone === "ok" ? "Execution Successful" : "Execution Error"),
-        body: `${body}${result.time ? `\n\n[Runtime: ${result.time}s | Memory: ${result.memory ?? 0}KB]` : ""}`,
+        title,
+        body,
         tone,
       });
     } catch (cause) {
@@ -1037,11 +1063,19 @@ export default function StudentDashboardPage() {
                         onChange={(e) => handleLanguageChange(e.target.value)}
                         className="rounded-lg border border-[#353535] bg-[#121212] px-3 py-1.5 text-xs font-bold text-[#F7F4EF] outline-none"
                       >
-                        {DEFAULT_LANGUAGES.map((l) => (
-                          <option key={l.value} value={l.value}>
-                            {l.label}
-                          </option>
-                        ))}
+                        {(() => {
+                          const filtered = question?.allowed_languages?.length
+                            ? DEFAULT_LANGUAGES.filter((l) =>
+                                question.allowed_languages.includes(l.value)
+                              )
+                            : DEFAULT_LANGUAGES;
+                          const options = filtered.length ? filtered : DEFAULT_LANGUAGES;
+                          return options.map((l) => (
+                            <option key={l.value} value={l.value}>
+                              {l.label}
+                            </option>
+                          ));
+                        })()}
                       </select>
 
                       <button

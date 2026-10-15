@@ -917,7 +917,7 @@ export default function AdminDashboardPage() {
           description: questionForm.description.trim(),
           difficulty: questionForm.difficulty,
           status: questionForm.status,
-          allowed_languages: ["python", "cpp", "java"],
+          allowed_languages: ["python", "c", "cpp", "java"],
           examples: [],
         }),
       });
