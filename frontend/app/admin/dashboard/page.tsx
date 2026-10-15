@@ -6,6 +6,8 @@ import type { FormEvent, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { UserResponse, UserRole } from "@/types/auth";
 import { PROGRAM_OPTIONS, SEMESTER_OPTIONS, YEAR_OF_STUDY_OPTIONS } from "@/lib/academic-options";
+import { CredLabLogo } from "@/components/CredLabLogo";
+import { DashboardAmbientGrid } from "@/components/3d/DashboardAmbientGrid";
 
 type RegistrationApproval = {
   id: number;
@@ -257,7 +259,7 @@ function Field({
   title?: string;
 }) {
   return (
-    <label className="block text-xs font-bold uppercase tracking-wider text-[#3F1024]">
+    <label className="block text-xs font-bold uppercase tracking-wider text-[#191919] dark:text-[#F7F4EF]">
       <span className="mb-1.5 block">{label}</span>
       <input
         type={type}
@@ -287,7 +289,7 @@ function SelectField({
   required?: boolean;
 }) {
   return (
-    <label className="block text-xs font-bold uppercase tracking-wider text-[#3F1024]">
+    <label className="block text-xs font-bold uppercase tracking-wider text-[#191919] dark:text-[#F7F4EF]">
       <span className="mb-1.5 block">{label}</span>
       <select
         required={required}
@@ -296,7 +298,7 @@ function SelectField({
         className="input-field text-xs"
       >
         {options.map((option) => (
-          <option key={option.value} value={option.value} className="bg-white text-[#3F1024]">
+          <option key={option.value} value={option.value} className="bg-white dark:bg-[#1B1B1B] text-[#191919] dark:text-[#F7F4EF]">
             {option.label}
           </option>
         ))}
@@ -317,15 +319,15 @@ function StatCard({
   icon: string;
 }) {
   return (
-    <article className="lux-card p-5 card-hover bg-[#FFFFFF]">
+    <article className="lux-card p-5 card-hover bg-[#FFFCF6] dark:bg-[#1B1B1B] border border-[#E4DDD2] dark:border-[#2D2D2D]">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-xs font-bold uppercase tracking-wider text-[#806777]">{label}</p>
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FBEAF0] text-[#9F1239] text-lg font-bold">
+        <p className="text-xs font-bold uppercase tracking-wider text-[#706C65] dark:text-[#A5A29C]">{label}</p>
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FF6B2C]/10 text-[#FF6B2C] dark:text-[#FFB547] border border-[#FF6B2C]/20 text-lg font-bold">
           {icon}
         </span>
       </div>
-      <p className="mt-4 text-3xl font-extrabold tracking-tight text-[#3F1024]">{value}</p>
-      <p className="mt-1 text-xs text-[#806777]">{detail}</p>
+      <p className="mt-4 text-3xl font-extrabold tracking-tight text-[#191919] dark:text-[#F7F4EF]">{value}</p>
+      <p className="mt-1 text-xs text-[#706C65] dark:text-[#A5A29C]">{detail}</p>
     </article>
   );
 }
@@ -344,11 +346,11 @@ function SectionHeading({
   return (
     <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#BE5678]">
+        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#FF6B2C] dark:text-[#FFB547]">
           {eyebrow}
         </p>
-        <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-[#3F1024]">{title}</h2>
-        <p className="mt-1 max-w-2xl text-xs leading-5 text-[#806777]">{description}</p>
+        <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-[#191919] dark:text-[#F7F4EF]">{title}</h2>
+        <p className="mt-1 max-w-2xl text-xs leading-5 text-[#706C65] dark:text-[#A5A29C]">{description}</p>
       </div>
       {action}
     </div>
@@ -381,9 +383,9 @@ function Notice({
 function LoadingBlock() {
   return (
     <div className="space-y-3" aria-label="Loading data">
-      <div className="h-12 animate-pulse rounded-xl bg-[#FBEAF0]/60" />
-      <div className="h-12 animate-pulse rounded-xl bg-[#FBEAF0]/60" />
-      <div className="h-12 animate-pulse rounded-xl bg-[#FBEAF0]/60" />
+      <div className="h-12 animate-pulse rounded-xl bg-[#FF6B2C]/10 dark:bg-[#252525]" />
+      <div className="h-12 animate-pulse rounded-xl bg-[#FF6B2C]/10 dark:bg-[#252525]" />
+      <div className="h-12 animate-pulse rounded-xl bg-[#FF6B2C]/10 dark:bg-[#252525]" />
     </div>
   );
 }
@@ -391,14 +393,13 @@ function LoadingBlock() {
 function EmptyBlock({ title, description }: { title: string; description: string }) {
   return (
     <div
-      className="rounded-2xl p-12 text-center bg-[#FFF7FA]"
-      style={{ border: "1px dashed #F0DCE5" }}
+      className="rounded-2xl p-12 text-center bg-[#FFFCF6] dark:bg-[#1B1B1B] border border-dashed border-[#E4DDD2] dark:border-[#2D2D2D]"
     >
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFFFFF] border border-[#F0DCE5] text-xl text-[#9F1239] font-bold">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFFFFF] dark:bg-[#252525] border border-[#E4DDD2] dark:border-[#2D2D2D] text-xl text-[#FF6B2C] dark:text-[#FFB547] font-bold">
         ∅
       </div>
-      <h3 className="mt-4 font-bold text-[#3F1024] text-sm">{title}</h3>
-      <p className="mx-auto mt-1.5 max-w-md text-xs leading-5 text-[#806777]">{description}</p>
+      <h3 className="mt-4 font-bold text-[#191919] dark:text-[#F7F4EF] text-sm">{title}</h3>
+      <p className="mx-auto mt-1.5 max-w-md text-xs leading-5 text-[#706C65] dark:text-[#A5A29C]">{description}</p>
     </div>
   );
 }
@@ -1029,8 +1030,8 @@ export default function AdminDashboardPage() {
         style={{ backgroundColor: "var(--color-background)" }}
       >
         <div className="text-center">
-          <div className="mx-auto mb-4 h-9 w-9 animate-spin rounded-full border-2 border-[#BE5678] border-t-[#9F1239]" />
-          <p className="text-sm font-semibold text-[#806777]">Loading administrator suite...</p>
+          <div className="mx-auto mb-4 h-9 w-9 animate-spin rounded-full border-2 border-[#FF6B2C] border-t-transparent" />
+          <p className="text-sm font-semibold text-[#706C65] dark:text-[#A5A29C]">Loading administrator suite...</p>
         </div>
       </main>
     );
@@ -1041,9 +1042,9 @@ export default function AdminDashboardPage() {
         className="flex min-h-screen items-center justify-center px-5"
         style={{ backgroundColor: "var(--color-background)" }}
       >
-        <section className="w-full max-w-md rounded-2xl lux-card p-7 border border-[#F0DCE5]">
-          <h1 className="text-xl font-extrabold text-[#3F1024]">Unable to load dashboard</h1>
-          <p className="mt-3 text-sm leading-6 text-[#806777]">{error}</p>
+        <section className="w-full max-w-md rounded-2xl lux-card p-7 border border-[#E4DDD2] dark:border-[#2D2D2D]">
+          <h1 className="text-xl font-extrabold text-[#191919] dark:text-[#F7F4EF]">Unable to load dashboard</h1>
+          <p className="mt-3 text-sm leading-6 text-[#706C65] dark:text-[#A5A29C]">{error}</p>
           <div className="mt-6 flex gap-3">
             <Button onClick={() => window.location.reload()}>Try again</Button>
             <Button variant="secondary" onClick={() => router.replace("/login")}>
@@ -1066,7 +1067,7 @@ export default function AdminDashboardPage() {
     <label className="block w-full sm:max-w-sm">
       <span className="sr-only">Search this section</span>
       <div className="relative">
-        <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#806777]">
+        <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#706C65] dark:text-[#A5A29C]">
           ⌕
         </span>
         <input
@@ -1085,41 +1086,33 @@ export default function AdminDashboardPage() {
         {/* Desktop Sidebar */}
         <aside
           className={cx(
-            "fixed inset-y-0 left-0 z-40 flex w-[285px] flex-col border-r border-[#F0DCE5] bg-[#FFFFFF] transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0",
+            "fixed inset-y-0 left-0 z-40 flex w-[285px] flex-col border-r border-[#E4DDD2] dark:border-[#2D2D2D] bg-[#FFFFFF] dark:bg-[#151515] transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0",
             mobileNavOpen ? "translate-x-0" : "-translate-x-full",
           )}
         >
-          <div className="flex items-center justify-between border-b border-[#F0DCE5] px-5 py-5">
+          <div className="flex items-center justify-between border-b border-[#E4DDD2] dark:border-[#2D2D2D] px-5 py-4">
             <button
               type="button"
               onClick={() => navigate("Overview")}
-              className="flex items-center gap-3 text-left"
+              className="flex items-center gap-2.5 text-left"
             >
-              <span
-                className="flex h-11 w-11 items-center justify-center rounded-2xl text-xl font-bold text-white shadow-xs"
-                style={{ background: "var(--primary-gradient)" }}
-              >
-                ⬡
+              <CredLabLogo size="sm" showWordmark={true} />
+              <span className="rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-500 uppercase tracking-wider border border-amber-500/20">
+                Admin
               </span>
-              <div>
-                <span className="block font-bold text-[#3F1024]">LabOS Admin</span>
-                <span className="mt-0.5 block text-xs font-semibold uppercase tracking-wider text-[#BE5678]">
-                  Governance Suite
-                </span>
-              </div>
             </button>
             <button
               type="button"
               aria-label="Close navigation"
               onClick={() => setMobileNavOpen(false)}
-              className="rounded-lg px-2 py-1 text-[#806777] hover:bg-[#FBEAF0] lg:hidden"
+              className="rounded-lg px-2 py-1 text-[#706C65] dark:text-[#A5A29C] hover:bg-[#FF6B2C]/10 dark:hover:bg-[#252525] lg:hidden"
             >
               ✕
             </button>
           </div>
 
           <div className="px-5 pb-2 pt-5">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#806777]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#706C65] dark:text-[#A5A29C]">
               Workspace Control
             </p>
           </div>
@@ -1135,7 +1128,7 @@ export default function AdminDashboardPage() {
                   "flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all",
                   activeSection === sec.name
                     ? "text-white shadow-xs"
-                    : "border-transparent text-[#806777] hover:bg-[#FBEAF0] hover:text-[#9F1239]",
+                    : "border-transparent text-[#706C65] dark:text-[#A5A29C] hover:bg-[#F3EFEA] dark:hover:bg-[#252525] hover:text-[#FF6B2C]",
                 )}
                 style={activeSection === sec.name ? { background: "var(--primary-gradient)" } : undefined}
               >
@@ -1146,7 +1139,7 @@ export default function AdminDashboardPage() {
                   <span className="block text-xs font-bold">{sec.name}</span>
                   <span
                     className={`mt-0.5 block text-[10px] ${
-                      activeSection === sec.name ? "text-rose-100" : "text-[#A38C9B]"
+                      activeSection === sec.name ? "text-white/80" : "text-[#706C65] dark:text-[#A5A29C]"
                     }`}
                   >
                     {sec.description}
@@ -1156,8 +1149,8 @@ export default function AdminDashboardPage() {
             ))}
           </nav>
 
-          <div className="border-t border-[#F0DCE5] p-4 bg-[#FFF7FA]">
-            <div className="flex items-center gap-3 rounded-xl bg-[#FFFFFF] border border-[#F0DCE5] p-3">
+          <div className="border-t border-[#E4DDD2] dark:border-[#2D2D2D] p-4 bg-[#FFFCF6] dark:bg-[#1B1B1B]">
+            <div className="flex items-center gap-3 rounded-xl bg-[#FFFFFF] dark:bg-[#151515] border border-[#E4DDD2] dark:border-[#2D2D2D] p-3">
               <div
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white"
                 style={{ background: "var(--primary-gradient)" }}
@@ -1165,8 +1158,8 @@ export default function AdminDashboardPage() {
                 {initials(user.name)}
               </div>
               <div className="min-w-0">
-                <p className="truncate text-xs font-bold text-[#3F1024]">{user.name}</p>
-                <p className="truncate text-[10px] font-semibold text-[#806777]">
+                <p className="truncate text-xs font-bold text-[#191919] dark:text-[#F7F4EF]">{user.name}</p>
+                <p className="truncate text-[10px] font-semibold text-[#706C65] dark:text-[#A5A29C]">
                   {user.admin_job_role?.replaceAll("_", " ") || "Administrator"}
                 </p>
               </div>
@@ -1185,27 +1178,27 @@ export default function AdminDashboardPage() {
 
         <div className="min-w-0 flex-1">
           {/* Sticky Topbar */}
-          <header className="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-[#F0DCE5] bg-[#FFFFFF]/90 px-4 py-3.5 backdrop-blur-md sm:px-7">
+          <header className="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-[#E4DDD2] dark:border-[#2D2D2D] bg-[#FFFFFF]/90 dark:bg-[#151515]/90 px-4 py-3.5 backdrop-blur-md sm:px-7">
             <div className="flex min-w-0 items-center gap-3">
               <button
                 type="button"
                 aria-label="Open navigation"
                 onClick={() => setMobileNavOpen(true)}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#F0DCE5] text-[#3F1024] hover:bg-[#FBEAF0] lg:hidden"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#E4DDD2] dark:border-[#2D2D2D] text-[#191919] dark:text-[#F7F4EF] hover:bg-[#F3EFEA] dark:hover:bg-[#252525] lg:hidden"
               >
                 ☰
               </button>
               <div className="min-w-0">
-                <h1 className="truncate text-sm font-extrabold text-[#3F1024]">{activeSection}</h1>
-                <p className="truncate text-xs font-semibold text-[#806777]">
+                <h1 className="truncate text-sm font-extrabold text-[#191919] dark:text-[#F7F4EF]">{activeSection}</h1>
+                <p className="truncate text-xs font-semibold text-[#706C65] dark:text-[#A5A29C]">
                   University Administration Portal
                 </p>
               </div>
             </div>
 
             <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-              <span className="hidden items-center gap-2 rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 sm:inline-flex">
-                <span className="h-2 w-2 rounded-full bg-emerald-600" />
+              <span className="hidden items-center gap-2 rounded-full border border-emerald-800 bg-emerald-950/40 px-3 py-1 text-xs font-bold text-emerald-300 sm:inline-flex">
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
                 Live Session
               </span>
               <Button variant="secondary" onClick={() => void refresh()} disabled={loadingData}>
@@ -1219,16 +1212,17 @@ export default function AdminDashboardPage() {
 
           <div className="mx-auto max-w-[1550px] px-4 py-7 sm:px-7 sm:py-8">
             {/* Banner */}
-            <section className="lux-card relative mb-8 overflow-hidden rounded-3xl p-6 sm:p-8 bg-gradient-to-r from-[#FFFFFF] via-[#FFF7FA] to-[#FBEAF0] border border-[#F0DCE5]">
-              <div className="relative flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
+            <section className="lux-card relative mb-8 overflow-hidden rounded-3xl p-6 sm:p-8 bg-gradient-to-r from-[#1B1B1B] via-[#1E1E1E] to-[#242424] border border-[#353535] shadow-lg">
+              <DashboardAmbientGrid />
+              <div className="relative z-10 flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
                 <div>
-                  <p className="inline-flex rounded-full border border-[#F0DCE5] bg-[#FFFFFF] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#9F1239]">
+                  <p className="inline-flex rounded-full border border-[#353535] bg-[#161616] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#FF8A3D]">
                     INSTITUTIONAL ADMINISTRATION
                   </p>
-                  <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-[#3F1024] sm:text-3xl">
+                  <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-[#F7F4EF] sm:text-3xl">
                     Welcome back, {user.name.split(" ")[0]}
                   </h2>
-                  <p className="mt-1 max-w-2xl text-xs sm:text-sm text-[#806777]">
+                  <p className="mt-1 max-w-2xl text-xs sm:text-sm text-[#A5A29C]">
                     Manage platform accounts, university courses, coding question banks, and
                     assessment activity.
                   </p>
@@ -1258,7 +1252,7 @@ export default function AdminDashboardPage() {
             {activeSection !== "Overview" && activeSection !== "Settings" && (
               <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 {searchBox}
-                <p className="text-xs font-semibold text-[#806777]">
+                <p className="text-xs font-semibold text-[#706C65] dark:text-[#A5A29C]">
                   Records retrieved from PostgreSQL database.
                 </p>
               </div>
@@ -1335,9 +1329,9 @@ export default function AdminDashboardPage() {
                 )}
 
                 <div className="mt-7 grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">
-                  <div className="lux-card p-5 sm:p-6 bg-[#FFFFFF]">
-                    <h3 className="font-bold text-sm text-[#3F1024]">Quick Actions</h3>
-                    <p className="mt-0.5 text-xs text-[#806777]">
+                  <div className="lux-card p-5 sm:p-6 bg-[#FFFCF6] dark:bg-[#1B1B1B] border border-[#E4DDD2] dark:border-[#2D2D2D]">
+                    <h3 className="font-bold text-sm text-[#191919] dark:text-[#F7F4EF]">Quick Actions</h3>
+                    <p className="mt-0.5 text-xs text-[#706C65] dark:text-[#A5A29C]">
                       Direct shortcuts to core institutional functions.
                     </p>
                     <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -1355,42 +1349,42 @@ export default function AdminDashboardPage() {
                           key={name}
                           type="button"
                           onClick={() => navigate(name)}
-                          className="flex items-center justify-between rounded-xl border border-[#F0DCE5] bg-[#FFF7FA] px-4 py-3 text-left text-xs font-bold text-[#3F1024] transition hover:border-[#BE5678] hover:bg-[#FBEAF0] hover:text-[#9F1239]"
+                          className="flex items-center justify-between rounded-xl border border-[#E4DDD2] dark:border-[#2D2D2D] bg-[#FFFFFF] dark:bg-[#151515] px-4 py-3 text-left text-xs font-bold text-[#191919] dark:text-[#F7F4EF] transition hover:border-[#FF6B2C] hover:bg-[#FF6B2C]/10 hover:text-[#FF6B2C] dark:hover:text-[#FFB547]"
                         >
                           <span>{name}</span>
-                          <span className="text-[#9F1239]">→</span>
+                          <span className="text-[#FF6B2C] dark:text-[#FFB547]">→</span>
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  <div className="lux-card p-5 sm:p-6 bg-[#FFFFFF]">
-                    <h3 className="font-bold text-sm text-[#3F1024]">Security Architecture</h3>
-                    <p className="mt-0.5 text-xs text-[#806777]">Session and execution assurances.</p>
+                  <div className="lux-card p-5 sm:p-6 bg-[#FFFCF6] dark:bg-[#1B1B1B] border border-[#E4DDD2] dark:border-[#2D2D2D]">
+                    <h3 className="font-bold text-sm text-[#191919] dark:text-[#F7F4EF]">Security Architecture</h3>
+                    <p className="mt-0.5 text-xs text-[#706C65] dark:text-[#A5A29C]">Session and execution assurances.</p>
                     <div className="mt-5 space-y-3.5">
                       <div className="flex items-start gap-3">
-                        <span className="text-emerald-700 font-bold">●</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">●</span>
                         <div>
-                          <p className="text-xs font-bold text-[#3F1024]">HTTP-Only Cookie Session</p>
-                          <p className="mt-0.5 text-[11px] text-[#806777]">
+                          <p className="text-xs font-bold text-[#191919] dark:text-[#F7F4EF]">HTTP-Only Cookie Session</p>
+                          <p className="mt-0.5 text-[11px] text-[#706C65] dark:text-[#A5A29C]">
                             Next.js proxy protects credentials from client-side script access.
                           </p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
-                        <span className="text-[#9F1239] font-bold">●</span>
+                        <span className="text-[#FF6B2C] dark:text-[#FFB547] font-bold">●</span>
                         <div>
-                          <p className="text-xs font-bold text-[#3F1024]">Server-Side Sandbox</p>
-                          <p className="mt-0.5 text-[11px] text-[#806777]">
+                          <p className="text-xs font-bold text-[#191919] dark:text-[#F7F4EF]">Server-Side Sandbox</p>
+                          <p className="mt-0.5 text-[11px] text-[#706C65] dark:text-[#A5A29C]">
                             Subprocess execution isolates student code from application server.
                           </p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
-                        <span className="text-[#BE5678] font-bold">●</span>
+                        <span className="text-amber-500 font-bold">●</span>
                         <div>
-                          <p className="text-xs font-bold text-[#3F1024]">Ed25519 Cryptographic Signing</p>
-                          <p className="mt-0.5 text-[11px] text-[#806777]">
+                          <p className="text-xs font-bold text-[#191919] dark:text-[#F7F4EF]">Ed25519 Cryptographic Signing</p>
+                          <p className="mt-0.5 text-[11px] text-[#706C65] dark:text-[#A5A29C]">
                             Certificates contain verifiable digital signatures against public key.
                           </p>
                         </div>
@@ -1425,7 +1419,7 @@ export default function AdminDashboardPage() {
                     }
                   />
                 ) : (
-                  <div className="overflow-hidden lux-card border border-[#F0DCE5]">
+                  <div className="overflow-hidden lux-card border border-[#E4DDD2] dark:border-[#2D2D2D]">
                     <div className="overflow-x-auto">
                       <table className="lux-table">
                         <thead>
@@ -1450,12 +1444,12 @@ export default function AdminDashboardPage() {
                                     {initials(item.name)}
                                   </span>
                                   <div>
-                                    <p className="font-bold text-sm text-[#3F1024]">{item.name}</p>
-                                    <p className="text-xs text-[#806777]">{item.email}</p>
+                                    <p className="font-bold text-sm text-[#191919] dark:text-[#F7F4EF]">{item.name}</p>
+                                    <p className="text-xs text-[#706C65] dark:text-[#A5A29C]">{item.email}</p>
                                   </div>
                                 </div>
                               </td>
-                              <td className="font-mono text-xs font-bold text-[#3F1024]">
+                              <td className="font-mono text-xs font-bold text-[#191919] dark:text-[#F7F4EF]">
                                 {item.enrollment_number || "—"}
                               </td>
                               <td>
@@ -1468,7 +1462,7 @@ export default function AdminDashboardPage() {
                                   </Badge>
                                 </div>
                               </td>
-                              <td className="text-xs text-[#806777]">
+                              <td className="text-xs text-[#706C65] dark:text-[#A5A29C]">
                                 {item.role === "STUDENT"
                                   ? [
                                       item.academic_course,
@@ -1482,7 +1476,7 @@ export default function AdminDashboardPage() {
                                   ? item.assigned_courses?.join(", ") || "No courses assigned"
                                   : item.admin_job_role?.replaceAll("_", " ") || "—"}
                               </td>
-                              <td className="text-xs text-[#806777]">{dateLabel(item.created_at)}</td>
+                              <td className="text-xs text-[#706C65] dark:text-[#A5A29C]">{dateLabel(item.created_at)}</td>
                               <td>
                                 <div className="flex flex-col items-start gap-1.5">
                                   <select
@@ -1492,7 +1486,7 @@ export default function AdminDashboardPage() {
                                     onChange={(event) =>
                                       void updateUserRole(item, event.target.value as UserRole)
                                     }
-                                    className="rounded-lg border border-[#F0DCE5] bg-white px-2.5 py-1 text-xs text-[#3F1024] outline-none"
+                                    className="rounded-lg border border-[#E4DDD2] dark:border-[#2D2D2D] bg-white dark:bg-[#151515] px-2.5 py-1 text-xs text-[#191919] dark:text-[#F7F4EF] outline-none"
                                   >
                                     <option value="STUDENT">STUDENT</option>
                                     <option value="FACULTY">FACULTY</option>
@@ -1536,10 +1530,10 @@ export default function AdminDashboardPage() {
                 {courseFormOpen && (
                   <form
                     onSubmit={createCourse}
-                    className="lux-card mb-6 p-5 sm:p-6 bg-[#FFFFFF] border border-[#F0DCE5]"
+                    className="lux-card mb-6 p-5 sm:p-6 bg-[#FFFCF6] dark:bg-[#1B1B1B] border border-[#E4DDD2] dark:border-[#2D2D2D]"
                   >
-                    <h3 className="mb-2 font-bold text-sm text-[#3F1024]">Create Academic Subject</h3>
-                    <p className="mb-5 text-xs text-[#806777]">
+                    <h3 className="mb-2 font-bold text-sm text-[#191919] dark:text-[#F7F4EF]">Create Academic Subject</h3>
+                    <p className="mb-5 text-xs text-[#706C65] dark:text-[#A5A29C]">
                       Matching enrolled students will be linked to this subject automatically.
                     </p>
                     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -1622,7 +1616,7 @@ export default function AdminDashboardPage() {
                     description="Create a course to begin assigning laboratory practicals."
                   />
                 ) : (
-                  <div className="overflow-hidden lux-card border border-[#F0DCE5]">
+                  <div className="overflow-hidden lux-card border border-[#E4DDD2] dark:border-[#2D2D2D]">
                     <div className="overflow-x-auto">
                       <table className="lux-table">
                         <thead>
@@ -1640,20 +1634,20 @@ export default function AdminDashboardPage() {
                           {filteredCourses.map((c) => (
                             <tr key={c.id}>
                               <td>
-                                <p className="font-bold text-sm text-[#3F1024]">{c.name}</p>
-                                <p className="text-xs text-[#806777]">{c.code || "No code"}</p>
+                                <p className="font-bold text-sm text-[#191919] dark:text-[#F7F4EF]">{c.name}</p>
+                                <p className="text-xs text-[#706C65] dark:text-[#A5A29C]">{c.code || "No code"}</p>
                               </td>
-                              <td className="text-xs text-[#806777]">
-                                <span className="font-semibold text-[#3F1024]">{c.program}</span>
+                              <td className="text-xs text-[#706C65] dark:text-[#A5A29C]">
+                                <span className="font-semibold text-[#191919] dark:text-[#F7F4EF]">{c.program}</span>
                                 <p className="mt-0.5">
                                   {c.year_of_study} · {c.semester} · {c.academic_year || "2026-2027"}
                                 </p>
                               </td>
-                              <td className="font-bold text-xs text-[#3F1024]">{c.student_count}</td>
-                              <td className="text-xs text-[#806777]">
+                              <td className="font-bold text-xs text-[#191919] dark:text-[#F7F4EF]">{c.student_count}</td>
+                              <td className="text-xs text-[#706C65] dark:text-[#A5A29C]">
                                 {c.faculty_names?.length ? c.faculty_names.join(", ") : "Unassigned"}
                               </td>
-                              <td className="font-bold text-xs text-[#9F1239]">{c.lab_count}</td>
+                              <td className="font-bold text-xs text-[#FF6B2C] dark:text-[#FFB547]">{c.lab_count}</td>
                               <td>
                                 <Badge tone={c.is_active ? "good" : "warn"}>
                                   {c.is_active ? "Active" : "Inactive"}
@@ -1704,9 +1698,9 @@ export default function AdminDashboardPage() {
                 {questionFormOpen && (
                   <form
                     onSubmit={createQuestion}
-                    className="lux-card mb-6 p-5 sm:p-6 bg-[#FFFFFF] border border-[#F0DCE5]"
+                    className="lux-card mb-6 p-5 sm:p-6 bg-[#FFFCF6] dark:bg-[#1B1B1B] border border-[#E4DDD2] dark:border-[#2D2D2D]"
                   >
-                    <h3 className="mb-4 font-bold text-sm text-[#3F1024]">Create Coding Question</h3>
+                    <h3 className="mb-4 font-bold text-sm text-[#191919] dark:text-[#F7F4EF]">Create Coding Question</h3>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <Field
                         label="Question Title"
@@ -1735,7 +1729,7 @@ export default function AdminDashboardPage() {
                         ]}
                       />
                       <div className="sm:col-span-2">
-                        <label className="block text-xs font-bold uppercase tracking-wider text-[#3F1024]">
+                        <label className="block text-xs font-bold uppercase tracking-wider text-[#191919] dark:text-[#F7F4EF]">
                           <span className="mb-1.5 block">Problem Statement</span>
                           <textarea
                             value={questionForm.description}
@@ -1767,7 +1761,7 @@ export default function AdminDashboardPage() {
                     description="Create a question to add to practical curricula."
                   />
                 ) : (
-                  <div className="overflow-hidden lux-card border border-[#F0DCE5]">
+                  <div className="overflow-hidden lux-card border border-[#E4DDD2] dark:border-[#2D2D2D]">
                     <div className="overflow-x-auto">
                       <table className="lux-table">
                         <thead>
@@ -1785,8 +1779,8 @@ export default function AdminDashboardPage() {
                           {filteredQuestions.map((q) => (
                             <tr key={q.id}>
                               <td>
-                                <p className="font-bold text-sm text-[#3F1024]">{q.title}</p>
-                                <p className="text-xs text-[#806777] font-mono">{q.slug}</p>
+                                <p className="font-bold text-sm text-[#191919] dark:text-[#F7F4EF]">{q.title}</p>
+                                <p className="text-xs text-[#706C65] dark:text-[#A5A29C] font-mono">{q.slug}</p>
                               </td>
                               <td>
                                 <Badge
@@ -1801,11 +1795,11 @@ export default function AdminDashboardPage() {
                                   {q.difficulty}
                                 </Badge>
                               </td>
-                              <td className="text-xs font-mono text-[#806777]">
+                              <td className="text-xs font-mono text-[#706C65] dark:text-[#A5A29C]">
                                 {q.allowed_languages.join(", ") || "All"}
                               </td>
-                              <td className="text-xs font-bold text-[#3F1024]">{q.example_count}</td>
-                              <td className="text-xs text-[#806777]">{dateLabel(q.created_at)}</td>
+                              <td className="text-xs font-bold text-[#191919] dark:text-[#F7F4EF]">{q.example_count}</td>
+                              <td className="text-xs text-[#706C65] dark:text-[#A5A29C]">{dateLabel(q.created_at)}</td>
                               <td>
                                 <Badge tone={q.status === "PUBLISHED" ? "good" : "warn"}>
                                   {q.status}
@@ -1822,7 +1816,7 @@ export default function AdminDashboardPage() {
                                       event.target.value as Question["status"],
                                     )
                                   }
-                                  className="rounded-lg border border-[#F0DCE5] bg-white px-2 py-1 text-xs text-[#3F1024]"
+                                  className="rounded-lg border border-[#E4DDD2] dark:border-[#2D2D2D] bg-white dark:bg-[#151515] px-2 py-1 text-xs text-[#191919] dark:text-[#F7F4EF]"
                                 >
                                   <option value="DRAFT">DRAFT</option>
                                   <option value="PUBLISHED">PUBLISHED</option>
@@ -1855,7 +1849,7 @@ export default function AdminDashboardPage() {
                     description="Student submissions will appear here once practicals are attempted."
                   />
                 ) : (
-                  <div className="overflow-hidden lux-card border border-[#F0DCE5]">
+                  <div className="overflow-hidden lux-card border border-[#E4DDD2] dark:border-[#2D2D2D]">
                     <div className="overflow-x-auto">
                       <table className="lux-table">
                         <thead>
@@ -1873,10 +1867,10 @@ export default function AdminDashboardPage() {
                         <tbody>
                           {filteredSubmissions.map((s) => (
                             <tr key={s.id}>
-                              <td className="font-mono text-xs font-bold text-[#9F1239]">#{s.id}</td>
-                              <td className="text-xs font-bold text-[#3F1024]">User #{s.user_id}</td>
-                              <td className="text-xs text-[#806777]">Question #{s.question_id}</td>
-                              <td className="font-mono text-xs uppercase text-[#806777]">{s.language}</td>
+                              <td className="font-mono text-xs font-bold text-[#FF6B2C] dark:text-[#FFB547]">#{s.id}</td>
+                              <td className="text-xs font-bold text-[#191919] dark:text-[#F7F4EF]">User #{s.user_id}</td>
+                              <td className="text-xs text-[#706C65] dark:text-[#A5A29C]">Question #{s.question_id}</td>
+                              <td className="font-mono text-xs uppercase text-[#706C65] dark:text-[#A5A29C]">{s.language}</td>
                               <td>
                                 <Badge
                                   tone={
@@ -1888,11 +1882,11 @@ export default function AdminDashboardPage() {
                                   {s.status}
                                 </Badge>
                               </td>
-                              <td className="font-bold text-xs text-[#3F1024]">{s.score.toFixed(1)}%</td>
-                              <td className="text-xs text-[#806777]">
+                              <td className="font-bold text-xs text-[#191919] dark:text-[#F7F4EF]">{s.score.toFixed(1)}%</td>
+                              <td className="text-xs text-[#706C65] dark:text-[#A5A29C]">
                                 {s.passed_test_cases}/{s.total_test_cases}
                               </td>
-                              <td className="text-xs text-[#806777]">{dateLabel(s.created_at)}</td>
+                              <td className="text-xs text-[#706C65] dark:text-[#A5A29C]">{dateLabel(s.created_at)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -1962,8 +1956,8 @@ export default function AdminDashboardPage() {
                       onClick={() => setApprovalFilter(filter)}
                       className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
                         approvalFilter === filter
-                          ? "bg-[#9F1239] text-white"
-                          : "bg-white text-[#806777] border border-[#F0DCE5] hover:bg-[#FFF7FA]"
+                          ? "bg-[#FF6B2C] text-white shadow-xs"
+                          : "bg-white dark:bg-[#1B1B1B] text-[#706C65] dark:text-[#A5A29C] border border-[#E4DDD2] dark:border-[#2D2D2D] hover:bg-[#F3EFEA] dark:hover:bg-[#252525]"
                       }`}
                     >
                       {filter}
@@ -1979,7 +1973,7 @@ export default function AdminDashboardPage() {
                     description="No registration applications match the current filter criteria."
                   />
                 ) : (
-                  <div className="lux-card bg-white border border-[#F0DCE5] overflow-hidden">
+                  <div className="lux-card bg-[#FFFCF6] dark:bg-[#1B1B1B] border border-[#E4DDD2] dark:border-[#2D2D2D] overflow-hidden">
                     <div className="overflow-x-auto">
                       <table className="lux-table">
                         <thead>
@@ -1998,10 +1992,10 @@ export default function AdminDashboardPage() {
                           {filteredApprovals.map((req) => (
                             <tr key={req.id}>
                               <td>
-                                <div className="font-bold text-xs text-[#3F1024]">{req.applicant_name}</div>
-                                <div className="text-[10px] text-[#806777]">{req.applicant_email}</div>
+                                <div className="font-bold text-xs text-[#191919] dark:text-[#F7F4EF]">{req.applicant_name}</div>
+                                <div className="text-[10px] text-[#706C65] dark:text-[#A5A29C]">{req.applicant_email}</div>
                               </td>
-                              <td className="font-mono text-xs text-[#3F1024]">
+                              <td className="font-mono text-xs text-[#191919] dark:text-[#F7F4EF]">
                                 {req.applicant_enrollment_number}
                               </td>
                               <td>
@@ -2009,7 +2003,7 @@ export default function AdminDashboardPage() {
                                   {req.account_type}
                                 </Badge>
                               </td>
-                              <td className="text-xs text-[#806777]">
+                              <td className="text-xs text-[#706C65] dark:text-[#A5A29C]">
                                 {req.admin_job_role?.replaceAll("_", " ") || "—"}
                               </td>
                               <td>
@@ -2025,8 +2019,8 @@ export default function AdminDashboardPage() {
                                   {req.decision}
                                 </Badge>
                               </td>
-                              <td className="text-xs text-[#806777]">{dateLabel(req.requested_at)}</td>
-                              <td className="text-xs text-[#806777] max-w-xs truncate">
+                              <td className="text-xs text-[#706C65] dark:text-[#A5A29C]">{dateLabel(req.requested_at)}</td>
+                              <td className="text-xs text-[#706C65] dark:text-[#A5A29C] max-w-xs truncate">
                                 {req.rejection_reason || (req.reviewer_name ? `Approved by ${req.reviewer_name}` : "—")}
                               </td>
                               <td>
@@ -2048,7 +2042,7 @@ export default function AdminDashboardPage() {
                                     </Button>
                                   </div>
                                 ) : (
-                                  <span className="text-xs text-[#806777]">Completed</span>
+                                  <span className="text-xs text-[#706C65] dark:text-[#A5A29C]">Completed</span>
                                 )}
                               </td>
                             </tr>
@@ -2078,9 +2072,9 @@ export default function AdminDashboardPage() {
                 {authorizationFormOpen && (
                   <form
                     onSubmit={createAuthorization}
-                    className="lux-card mb-6 p-5 sm:p-6 bg-[#FFFFFF] border border-[#F0DCE5]"
+                    className="lux-card mb-6 p-5 sm:p-6 bg-[#FFFCF6] dark:bg-[#1B1B1B] border border-[#E4DDD2] dark:border-[#2D2D2D]"
                   >
-                    <h3 className="mb-4 font-bold text-sm text-[#3F1024]">
+                    <h3 className="mb-4 font-bold text-sm text-[#191919] dark:text-[#F7F4EF]">
                       Provision Enrollment Number
                     </h3>
                     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -2144,7 +2138,7 @@ export default function AdminDashboardPage() {
                     description="Provision authorized enrollment numbers for students and faculty."
                   />
                 ) : (
-                  <div className="overflow-hidden lux-card border border-[#F0DCE5]">
+                  <div className="overflow-hidden lux-card border border-[#E4DDD2] dark:border-[#2D2D2D]">
                     <div className="overflow-x-auto">
                       <table className="lux-table">
                         <thead>
@@ -2160,13 +2154,13 @@ export default function AdminDashboardPage() {
                         <tbody>
                           {authorizations.map((auth) => (
                             <tr key={auth.id}>
-                              <td className="font-mono text-xs font-bold text-[#3F1024]">
+                              <td className="font-mono text-xs font-bold text-[#191919] dark:text-[#F7F4EF]">
                                 {auth.enrollment_number}
                               </td>
                               <td>
                                 <Badge>{auth.expected_role}</Badge>
                               </td>
-                              <td className="text-xs text-[#806777]">
+                              <td className="text-xs text-[#706C65] dark:text-[#A5A29C]">
                                 {auth.expected_role === "ADMIN" && user?.admin_job_role === "SUPER_ADMIN" ? (
                                   <select
                                     value={auth.admin_job_role || ""}
@@ -2226,8 +2220,8 @@ export default function AdminDashboardPage() {
                   title="Administrator Settings"
                   description="Current authenticated administrator session details."
                 />
-                <div className="max-w-2xl lux-card p-6 bg-[#FFFFFF] border border-[#F0DCE5]">
-                  <div className="flex items-center gap-4 border-b border-[#F0DCE5] pb-6">
+                <div className="max-w-2xl lux-card p-6 bg-[#FFFCF6] dark:bg-[#1B1B1B] border border-[#E4DDD2] dark:border-[#2D2D2D]">
+                  <div className="flex items-center gap-4 border-b border-[#E4DDD2] dark:border-[#2D2D2D] pb-6">
                     <div
                       className="flex h-14 w-14 items-center justify-center rounded-2xl text-lg font-bold text-white shadow-xs"
                       style={{ background: "var(--primary-gradient)" }}
@@ -2235,34 +2229,34 @@ export default function AdminDashboardPage() {
                       {initials(user.name)}
                     </div>
                     <div>
-                      <h3 className="text-base font-bold text-[#3F1024]">{user.name}</h3>
-                      <p className="text-xs text-[#806777]">{user.email}</p>
+                      <h3 className="text-base font-bold text-[#191919] dark:text-[#F7F4EF]">{user.name}</h3>
+                      <p className="text-xs text-[#706C65] dark:text-[#A5A29C]">{user.email}</p>
                     </div>
                   </div>
 
                   <dl className="grid gap-4 py-6 sm:grid-cols-2 text-xs">
                     <div>
-                      <dt className="font-bold uppercase tracking-wider text-[#806777]">Account Role</dt>
+                      <dt className="font-bold uppercase tracking-wider text-[#706C65] dark:text-[#A5A29C]">Account Role</dt>
                       <dd className="mt-1">
                         <Badge tone="blue">{user.role}</Badge>
                       </dd>
                     </div>
                     <div>
-                      <dt className="font-bold uppercase tracking-wider text-[#806777]">
+                      <dt className="font-bold uppercase tracking-wider text-[#706C65] dark:text-[#A5A29C]">
                         Job Function
                       </dt>
-                      <dd className="mt-1 font-bold text-[#3F1024]">
+                      <dd className="mt-1 font-bold text-[#191919] dark:text-[#F7F4EF]">
                         {user.admin_job_role?.replaceAll("_", " ") || "Administrator"}
                       </dd>
                     </div>
                     <div>
-                      <dt className="font-bold uppercase tracking-wider text-[#806777]">Staff ID</dt>
-                      <dd className="mt-1 font-mono font-bold text-[#3F1024]">
+                      <dt className="font-bold uppercase tracking-wider text-[#706C65] dark:text-[#A5A29C]">Staff ID</dt>
+                      <dd className="mt-1 font-mono font-bold text-[#191919] dark:text-[#F7F4EF]">
                         {user.enrollment_number || "—"}
                       </dd>
                     </div>
                     <div>
-                      <dt className="font-bold uppercase tracking-wider text-[#806777]">Status</dt>
+                      <dt className="font-bold uppercase tracking-wider text-[#706C65] dark:text-[#A5A29C]">Status</dt>
                       <dd className="mt-1">
                         <Badge tone={user.is_active ? "good" : "bad"}>
                           {user.is_active ? "Active" : "Inactive"}
@@ -2278,27 +2272,27 @@ export default function AdminDashboardPage() {
               </section>
             )}
 
-            <footer className="mt-12 text-center text-xs py-4 text-[#806777]">
-              LabOS · University Administration Suite · 2026
+            <footer className="mt-12 text-center text-xs py-4 text-[#706C65] dark:text-[#A5A29C]">
+              CredLab · University Administration Suite · 2026
             </footer>
           </div>
         </div>
       </div>
 
-            {/* Rejection Reason Modal */}
+      {/* Rejection Reason Modal */}
       {rejectingApproval && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4"
           role="presentation"
         >
-          <div className="w-full max-w-md lux-card p-6 bg-white border border-[#F0DCE5] shadow-2xl animate-fade-in">
-            <h3 className="text-base font-extrabold text-[#3F1024]">Reject Registration Request</h3>
-            <p className="mt-1 text-xs text-[#806777]">
+          <div className="w-full max-w-md lux-card p-6 bg-[#FFFCF6] dark:bg-[#1B1B1B] border border-[#E4DDD2] dark:border-[#2D2D2D] shadow-2xl animate-fade-in">
+            <h3 className="text-base font-extrabold text-[#191919] dark:text-[#F7F4EF]">Reject Registration Request</h3>
+            <p className="mt-1 text-xs text-[#706C65] dark:text-[#A5A29C]">
               Specify the institutional justification for rejecting {rejectingApproval.applicant_name} ({rejectingApproval.applicant_email}).
             </p>
             <form onSubmit={rejectRegistration} className="mt-4 space-y-4">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#3F1024] mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-[#191919] dark:text-[#F7F4EF] mb-1.5">
                   Rejection Reason (Required)
                 </label>
                 <textarea
@@ -2333,43 +2327,43 @@ export default function AdminDashboardPage() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4"
           role="presentation"
         >
-          <div className="w-full max-w-lg lux-card p-6 bg-white border border-[#F0DCE5] shadow-2xl animate-fade-in">
+          <div className="w-full max-w-lg lux-card p-6 bg-[#FFFCF6] dark:bg-[#1B1B1B] border border-[#E4DDD2] dark:border-[#2D2D2D] shadow-2xl animate-fade-in">
             <div className="flex items-start gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl badge-danger text-lg font-bold">
-                ?
+                ⚠️
               </span>
               <div>
-                <h3 className="text-base font-extrabold text-[#3F1024]">
+                <h3 className="text-base font-extrabold text-[#191919] dark:text-[#F7F4EF]">
                   Confirm Subject Deletion
                 </h3>
-                <p className="text-xs text-[#806777]">
+                <p className="text-xs text-[#706C65] dark:text-[#A5A29C]">
                   {deletingCourse.name} ({deletingCourse.code || "No code"})
                 </p>
               </div>
             </div>
 
             {deletingCourseBusy ? (
-              <div className="mt-6 py-8 text-center text-xs text-[#806777]">
+              <div className="mt-6 py-8 text-center text-xs text-[#706C65] dark:text-[#A5A29C]">
                 Analyzing subject dependencies and candidate submissions...
               </div>
             ) : deletionPreview ? (
               <div className="mt-5 space-y-3">
-                <div className="rounded-xl border border-[#F0DCE5] bg-[#FFF7FA] p-3.5 text-xs">
-                  <div className="grid grid-cols-2 gap-2 text-[#3F1024]">
+                <div className="rounded-xl border border-[#E4DDD2] dark:border-[#2D2D2D] bg-[#FFFFFF] dark:bg-[#151515] p-3.5 text-xs">
+                  <div className="grid grid-cols-2 gap-2 text-[#191919] dark:text-[#F7F4EF]">
                     <div>
-                      <span className="text-[#806777]">Laboratories:</span>{" "}
+                      <span className="text-[#706C65] dark:text-[#A5A29C]">Laboratories:</span>{" "}
                       <span className="font-bold">{deletionPreview.lab_count}</span>
                     </div>
                     <div>
-                      <span className="text-[#806777]">Practicals:</span>{" "}
+                      <span className="text-[#706C65] dark:text-[#A5A29C]">Practicals:</span>{" "}
                       <span className="font-bold">{deletionPreview.practical_count}</span>
                     </div>
                     <div>
-                      <span className="text-[#806777]">Enrolled Students:</span>{" "}
+                      <span className="text-[#706C65] dark:text-[#A5A29C]">Enrolled Students:</span>{" "}
                       <span className="font-bold">{deletionPreview.enrolled_student_count}</span>
                     </div>
                     <div>
-                      <span className="text-[#806777]">Historical Submissions:</span>{" "}
+                      <span className="text-[#706C65] dark:text-[#A5A29C]">Historical Submissions:</span>{" "}
                       <span className="font-bold">{deletionPreview.historical_submissions_count}</span>
                     </div>
                   </div>
@@ -2390,7 +2384,7 @@ export default function AdminDashboardPage() {
               </div>
             ) : null}
 
-            <div className="mt-6 flex justify-end gap-2 pt-2 border-t border-[#F0DCE5]">
+            <div className="mt-6 flex justify-end gap-2 pt-2 border-t border-[#E4DDD2] dark:border-[#2D2D2D]">
               <Button
                 variant="secondary"
                 disabled={busy}
@@ -2430,17 +2424,17 @@ export default function AdminDashboardPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="academic-profile-title"
-            className="w-full max-w-2xl rounded-2xl lux-card p-6 shadow-2xl sm:p-7 bg-[#FFFFFF] border border-[#F0DCE5]"
+            className="w-full max-w-2xl rounded-2xl lux-card p-6 shadow-2xl sm:p-7 bg-[#FFFCF6] dark:bg-[#1B1B1B] border border-[#E4DDD2] dark:border-[#2D2D2D]"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-[#BE5678]">
+                <p className="text-xs font-bold uppercase tracking-wider text-[#FF6B2C] dark:text-[#FFB547]">
                   Student Roster
                 </p>
-                <h2 id="academic-profile-title" className="mt-1 text-xl font-extrabold text-[#3F1024]">
+                <h2 id="academic-profile-title" className="mt-1 text-xl font-extrabold text-[#191919] dark:text-[#F7F4EF]">
                   Edit Academic Profile
                 </h2>
-                <p className="mt-0.5 text-xs text-[#806777]">
+                <p className="mt-0.5 text-xs text-[#706C65] dark:text-[#A5A29C]">
                   {editingStudent.name} · {editingStudent.enrollment_number || "No enrollment"}
                 </p>
               </div>
@@ -2449,7 +2443,7 @@ export default function AdminDashboardPage() {
                 aria-label="Close dialog"
                 disabled={busy}
                 onClick={() => setEditingStudent(null)}
-                className="rounded-lg px-2 py-1 text-[#806777] hover:bg-[#FBEAF0]"
+                className="rounded-lg px-2 py-1 text-[#706C65] dark:text-[#A5A29C] hover:bg-[#FF6B2C]/10 dark:hover:bg-[#252525]"
               >
                 ✕
               </button>
@@ -2462,7 +2456,7 @@ export default function AdminDashboardPage() {
             )}
 
             <form onSubmit={saveAcademicProfile} className="mt-5 grid gap-4 sm:grid-cols-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-[#3F1024]">
+              <label className="block text-xs font-bold uppercase tracking-wider text-[#191919] dark:text-[#F7F4EF]">
                 <span className="mb-1.5 block">Program</span>
                 <select
                   required

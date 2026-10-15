@@ -3,7 +3,8 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-
+import { Eye, EyeOff, AlertCircle, CheckCircle2, ArrowRight } from "lucide-react";
+import { CredLabLogo } from "@/components/CredLabLogo";
 import { ApiError } from "@/lib/api/client";
 import { registerFaculty } from "@/lib/api/auth";
 
@@ -95,43 +96,43 @@ export default function FacultyRegistrationPage() {
   }
 
   return (
-    <main
-      className="relative flex min-h-screen flex-1 items-center justify-center overflow-hidden px-4 py-12 sm:px-6"
-      style={{ backgroundColor: "var(--color-background)" }}
-    >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 overflow-hidden"
-      >
-        <div className="absolute -left-36 -top-36 h-[32rem] w-[32rem] rounded-full bg-[#FBEAF0] opacity-80 blur-[100px]" />
-        <div className="absolute -bottom-36 -right-36 h-[34rem] w-[34rem] rounded-full bg-[#FFF0F5] opacity-90 blur-[120px]" />
+    <main className="relative flex min-h-screen flex-1 items-center justify-center overflow-hidden px-4 py-8 sm:px-6 sm:py-14 bg-[#101010] text-[#F7F4EF]">
+      {/* Top Navigation */}
+      <header className="absolute top-0 left-0 right-0 p-4 sm:p-6 flex items-center justify-between max-w-7xl mx-auto z-20">
+        <Link href="/" aria-label="CredLab Home">
+          <CredLabLogo size="sm" showWordmark={true} />
+        </Link>
+      </header>
+
+      {/* Ambient Lighting Gradients */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute top-1/4 left-1/4 h-[30rem] w-[30rem] rounded-full bg-[#FF6B2C]/10 blur-[130px]" />
+        <div className="absolute bottom-1/4 right-1/4 h-[28rem] w-[28rem] rounded-full bg-[#FFB547]/8 blur-[120px]" />
       </div>
 
-      <section className="relative z-10 w-full max-w-2xl lux-card p-6 shadow-xl sm:p-10 border border-[#F0DCE5]">
-        <div className="flex items-center justify-between">
+      <section className="relative z-10 w-full max-w-2xl rounded-3xl border border-[#353535] bg-[#1B1B1B] p-6 shadow-2xl sm:p-10 mt-14 sm:mt-10">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <Link
             href="/login"
-            className="inline-flex items-center gap-2 text-xs font-semibold text-[#806777] hover:text-[#9F1239] transition-colors"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-[#A5A29C] hover:text-[#FF6B2C] transition-colors"
           >
             ← Back to sign in
           </Link>
 
-          <div className="flex gap-1.5 rounded-xl p-1 bg-[#FFF7FA] border border-[#F0DCE5]">
+          {/* Role Switcher Pills */}
+          <div className="flex gap-1 rounded-xl p-1 bg-[#222222] border border-[#353535]">
             <Link
               href="/register/student"
-              className="rounded-lg px-2.5 py-1 text-xs font-semibold text-[#806777] hover:text-[#9F1239] transition-colors"
+              className="rounded-lg px-2.5 py-1 text-xs font-semibold text-[#A5A29C] hover:text-[#F7F4EF] transition-colors"
             >
               Student
             </Link>
-            <span
-              className="rounded-lg px-2.5 py-1 text-xs font-bold text-white shadow-xs"
-              style={{ background: "var(--primary-gradient)" }}
-            >
+            <span className="rounded-lg px-2.5 py-1 text-xs font-bold text-white bg-[#FF6B2C] shadow-xs">
               Faculty
             </span>
             <Link
               href="/register/admin"
-              className="rounded-lg px-2.5 py-1 text-xs font-semibold text-[#806777] hover:text-[#9F1239] transition-colors"
+              className="rounded-lg px-2.5 py-1 text-xs font-semibold text-[#A5A29C] hover:text-[#F7F4EF] transition-colors"
             >
               Admin
             </Link>
@@ -139,15 +140,14 @@ export default function FacultyRegistrationPage() {
         </div>
 
         <div className="mt-8">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#BE5678]">
+          <p className="text-xs font-mono font-bold uppercase tracking-widest text-[#FF8A3D]">
             Faculty Onboarding
           </p>
-          <h1 className="mt-1 text-2xl font-extrabold text-[#3F1024] sm:text-3xl">
+          <h1 className="mt-1 text-2xl font-extrabold sm:text-3xl tracking-tight text-[#F7F4EF]">
             Register Faculty Account
           </h1>
-          <p className="mt-2 text-sm text-[#806777]">
-            Register with your institutional EMP number to manage courses, laboratory practicals,
-            and grade approvals.
+          <p className="mt-2 text-xs sm:text-sm text-[#A5A29C]">
+            Register with your institutional EMP number to manage courses, laboratory practicals, and grade approvals.
           </p>
         </div>
 
@@ -156,7 +156,7 @@ export default function FacultyRegistrationPage() {
             <div>
               <label
                 htmlFor="name"
-                className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#3F1024]"
+                className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#F7F4EF]"
               >
                 Full Name
               </label>
@@ -178,7 +178,7 @@ export default function FacultyRegistrationPage() {
             <div>
               <label
                 htmlFor="email"
-                className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#3F1024]"
+                className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#F7F4EF]"
               >
                 Institutional Email
               </label>
@@ -202,7 +202,7 @@ export default function FacultyRegistrationPage() {
             <div>
               <label
                 htmlFor="enrollmentNumber"
-                className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#3F1024]"
+                className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#F7F4EF]"
               >
                 Authorized Employee ID
               </label>
@@ -230,7 +230,7 @@ export default function FacultyRegistrationPage() {
             <div>
               <label
                 htmlFor="subjects"
-                className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#3F1024]"
+                className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#F7F4EF]"
               >
                 Teaching Subjects (comma separated)
               </label>
@@ -252,7 +252,7 @@ export default function FacultyRegistrationPage() {
             <div>
               <label
                 htmlFor="password"
-                className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#3F1024]"
+                className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#F7F4EF]"
               >
                 Password (min 8 chars)
               </label>
@@ -269,15 +269,15 @@ export default function FacultyRegistrationPage() {
                   onChange={(event) => setPassword(event.target.value)}
                   disabled={loading}
                   placeholder="Create password"
-                  className="input-field pr-16"
+                  className="input-field pr-12"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((current) => !current)}
                   aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="absolute inset-y-0 right-2 my-auto h-8 px-2 text-xs font-semibold text-[#806777] hover:text-[#9F1239]"
+                  className="absolute inset-y-0 right-2 my-auto h-8 px-2 text-[#A5A29C] hover:text-[#FF6B2C] flex items-center justify-center"
                 >
-                  {showPassword ? "Hide" : "Show"}
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
@@ -285,7 +285,7 @@ export default function FacultyRegistrationPage() {
             <div>
               <label
                 htmlFor="confirmPassword"
-                className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#3F1024]"
+                className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#F7F4EF]"
               >
                 Confirm Password
               </label>
@@ -310,9 +310,10 @@ export default function FacultyRegistrationPage() {
             <div
               role="alert"
               aria-live="polite"
-              className="rounded-xl p-3.5 text-xs leading-5 badge-danger animate-fade-in"
+              className="rounded-xl p-3 text-xs leading-relaxed badge-danger animate-fade-in flex items-start gap-2"
             >
-              {error}
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-[#EF4444]" />
+              <span>{error}</span>
             </div>
           )}
 
@@ -320,24 +321,35 @@ export default function FacultyRegistrationPage() {
             <div
               role="status"
               aria-live="polite"
-              className="rounded-xl p-3.5 text-xs leading-5 badge-success animate-fade-in"
+              className="rounded-xl p-3 text-xs leading-relaxed badge-success animate-fade-in flex items-start gap-2"
             >
-              {success}
+              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-[#34D399]" />
+              <span>{success}</span>
             </div>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary w-full !py-3.5 !text-sm mt-3 font-bold tracking-wide"
+            className="btn-primary w-full !py-3.5 !text-sm mt-3 font-bold tracking-wide flex items-center justify-center gap-2"
           >
-            {loading ? "Registering faculty account..." : "Complete Faculty Registration"}
+            {loading ? (
+              <>
+                <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                <span>Registering faculty account...</span>
+              </>
+            ) : (
+              <>
+                <span>Complete Faculty Registration</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
           </button>
         </form>
 
-        <p className="mt-7 text-center text-xs text-[#806777]">
+        <p className="mt-7 text-center text-xs text-[#A5A29C]">
           Already have a faculty account?{" "}
-          <Link href="/login" className="font-bold text-[#9F1239] hover:underline">
+          <Link href="/login" className="font-bold text-[#FF6B2C] hover:underline">
             Sign in here
           </Link>
         </p>

@@ -4,6 +4,8 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { ShieldCheck, Printer, ArrowLeft, AlertCircle } from "lucide-react";
+import { CredLabEmblem } from "@/components/CredLabLogo";
 
 type Certificate = {
   id: string;
@@ -76,13 +78,10 @@ function CertificatePageContent() {
 
   if (loading) {
     return (
-      <main
-        className="flex min-h-screen items-center justify-center"
-        style={{ backgroundColor: "var(--color-background)" }}
-      >
+      <main className="flex min-h-screen items-center justify-center bg-[#F5F0E7] dark:bg-[#101010] text-[#191919] dark:text-[#F7F4EF]">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 animate-spin rounded-full border-3 border-[#9F1239] border-t-transparent" />
-          <p className="text-sm font-semibold text-[#806777]">
+          <div className="h-10 w-10 animate-spin rounded-full border-3 border-[#FF6B2C] border-t-transparent" />
+          <p className="text-xs font-mono font-semibold text-[#706C65] dark:text-[#A5A29C]">
             Validating cryptographic diploma credentials...
           </p>
         </div>
@@ -92,22 +91,20 @@ function CertificatePageContent() {
 
   if (error || !certificate) {
     return (
-      <main
-        className="flex min-h-screen items-center justify-center p-6"
-        style={{ backgroundColor: "var(--color-background)" }}
-      >
-        <div className="lux-card max-w-lg p-8 text-center shadow-xl border border-[#F0DCE5]">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl badge-danger text-xl">
-            ⚠
+      <main className="flex min-h-screen items-center justify-center p-6 bg-[#F5F0E7] dark:bg-[#101010] text-[#191919] dark:text-[#F7F4EF]">
+        <div className="rounded-3xl border border-[#E4DDD2] dark:border-[#353535] bg-[#FFFCF6] dark:bg-[#181818] max-w-lg p-8 text-center shadow-xl">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#DC2626]/10 text-[#DC2626] dark:text-[#EF4444]">
+            <AlertCircle className="w-6 h-6" />
           </div>
-          <h1 className="mt-4 text-xl font-extrabold text-[#3F1024]">
+          <h1 className="mt-4 text-xl font-extrabold">
             Certificate Record Unavailable
           </h1>
-          <p className="mt-2 text-sm text-[#806777]">
+          <p className="mt-2 text-xs text-[#706C65] dark:text-[#A5A29C]">
             {error || "This completion certificate could not be located on the platform."}
           </p>
-          <Link href="/student/dashboard" className="btn-primary mt-6 !py-2.5 !text-xs font-bold">
-            ← Return to Dashboard
+          <Link href="/student/dashboard" className="btn-primary mt-6 !py-2.5 !text-xs font-bold inline-flex items-center gap-2">
+            <ArrowLeft className="w-4 h-4" />
+            <span>Return to Dashboard</span>
           </Link>
         </div>
       </main>
@@ -115,119 +112,116 @@ function CertificatePageContent() {
   }
 
   return (
-    <main
-      className="min-h-screen p-4 sm:p-8 lg:p-12 print:p-0 print:bg-white print:text-black"
-      style={{ backgroundColor: "var(--color-background)" }}
-    >
+    <main className="min-h-screen p-4 sm:p-8 lg:p-12 print:p-0 print:bg-white print:text-black bg-[#101010] text-[#F7F4EF]">
       <div className="mx-auto max-w-4xl">
-        {/* Navigation / Actions Bar */}
+        {/* Navigation & Action Bar */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4 print:hidden">
           <Link
             href="/student/dashboard"
-            className="inline-flex items-center gap-2 text-xs font-bold text-[#9F1239] hover:underline transition-colors"
+            className="inline-flex items-center gap-2 text-xs font-bold text-[#FF8A3D] hover:underline transition-colors"
           >
-            ← Back to Student Workspace
+            <ArrowLeft className="w-4 h-4" />
+            <span>Return to Workspace</span>
           </Link>
 
           <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={() => window.print()}
-              className="btn-primary !py-2 !px-4 !text-xs font-bold shadow-sm"
+              className="btn-primary !py-2 !px-4 !text-xs font-bold shadow-sm flex items-center gap-1.5"
             >
-              🖨 Print / Save as PDF
+              <Printer className="w-4 h-4" />
+              <span>Print / Save as PDF</span>
             </button>
           </div>
         </div>
 
         {/* ────── Academic Certificate Document ────── */}
         <section
-          className="relative overflow-hidden rounded-3xl bg-[#FFFFFF] p-8 text-[#3F1024] shadow-2xl sm:p-14 border-8 border-[#9F1239] print:border-none print:shadow-none print:p-8"
+          className="relative overflow-hidden rounded-3xl bg-[#1A1A1A] p-6 text-[#F7F4EF] shadow-2xl sm:p-12 border-4 sm:border-8 border-[#FF6B2C] print:border-none print:shadow-none print:p-8 transition-colors"
           style={{
-            boxShadow: "0 25px 50px -12px rgba(159, 18, 57, 0.15)",
+            boxShadow: "0 25px 50px -12px rgba(255, 107, 44, 0.2)",
           }}
         >
           {/* Ornate inner border */}
-          <div className="relative border-4 border-[#F0DCE5] p-8 sm:p-12 text-center bg-gradient-to-b from-[#FFFFFF] via-[#FFFDFE] to-[#FFF7FA]">
+          <div className="relative border-2 border-[#353535] p-6 sm:p-10 text-center rounded-2xl bg-gradient-to-b from-[#1E1E1E] via-[#191919] to-[#141414]">
             {/* Top Emblem */}
-            <div
-              className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl text-2xl font-bold text-white shadow-sm"
-              style={{ background: "var(--primary-gradient)" }}
-            >
-              ⬡
+            <div className="mx-auto flex items-center justify-center">
+              <CredLabEmblem className="w-16 h-16" />
             </div>
 
-            <p className="mt-4 text-xs font-bold uppercase tracking-[0.3em] text-[#9F1239]">
-              {certificate.issuer || "LabOS Academic Sentinel"}
+            <p className="mt-4 text-xs font-mono font-bold uppercase tracking-[0.3em] text-[#FF8A3D]">
+              {certificate.issuer || "CredLab Academic Sentinel"}
             </p>
 
-            <h1 className="mt-4 font-serif text-3xl sm:text-5xl font-extrabold tracking-tight text-[#3F1024]">
+            <h1 className="mt-3 font-serif text-3xl sm:text-5xl font-extrabold tracking-tight">
               Certificate of Completion
             </h1>
 
-            <p className="mt-6 text-xs font-bold uppercase tracking-widest text-[#806777]">
+            <p className="mt-6 text-xs font-mono font-bold uppercase tracking-widest text-[#A5A29C]">
               This officially certifies that
             </p>
 
-            <h2 className="mt-3 text-2xl sm:text-4xl font-serif font-extrabold text-[#9F1239] tracking-wide underline decoration-[#BE5678]/40 decoration-2 underline-offset-8">
+            <h2 className="mt-3 text-2xl sm:text-4xl font-serif font-extrabold text-[#FF6B2C] tracking-wide underline decoration-[#FFB547]/50 decoration-2 underline-offset-8">
               {certificate.student_name}
             </h2>
 
-            <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed text-[#3F1024]">
+            <p className="mx-auto mt-6 max-w-xl text-xs sm:text-sm leading-relaxed text-[#A5A29C]">
               has satisfactorily completed all mandatory laboratory programming assessments and
-              demonstrated mastery of secure coding requirements in
+              demonstrated verifiable mastery of secure coding requirements in
             </p>
 
-            <p className="mt-3 text-xl sm:text-2xl font-serif font-extrabold text-[#3F1024]">
+            <p className="mt-3 text-xl sm:text-2xl font-serif font-extrabold">
               {certificate.lab_title}
             </p>
 
-            <p className="mt-1 text-xs font-bold text-[#806777]">
+            <p className="mt-1 text-xs font-mono font-bold text-[#A5A29C]">
               Course:{" "}
-              <span className="font-extrabold text-[#9F1239]">{certificate.course_code}</span>
+              <span className="font-extrabold text-[#FF8A3D]">{certificate.course_code}</span>
             </p>
 
             {/* Credential Metrics Grid */}
-            <div className="mx-auto mt-8 grid max-w-lg grid-cols-2 gap-4 rounded-xl border border-[#F0DCE5] bg-[#FFF7FA] p-4 text-xs sm:grid-cols-4">
+            <div className="mx-auto mt-8 grid max-w-lg grid-cols-2 gap-4 rounded-xl border border-[#353535] bg-[#161616] p-4 text-xs sm:grid-cols-4 font-mono">
               <div>
-                <p className="text-[10px] uppercase font-bold text-[#806777]">Final Score</p>
-                <p className="mt-1 font-extrabold text-[#9F1239] text-base">{certificate.score}%</p>
+                <p className="text-[10px] uppercase font-bold text-[#A5A29C]">Final Score</p>
+                <p className="mt-1 font-extrabold text-[#FF6B2C] text-base">{certificate.score}%</p>
               </div>
               <div>
-                <p className="text-[10px] uppercase font-bold text-[#806777]">Threshold</p>
-                <p className="mt-1 font-extrabold text-[#3F1024] text-base">
+                <p className="text-[10px] uppercase font-bold text-[#A5A29C]">Threshold</p>
+                <p className="mt-1 font-extrabold text-base">
                   {certificate.passing_threshold}%
                 </p>
               </div>
               <div>
-                <p className="text-[10px] uppercase font-bold text-[#806777]">Completed</p>
-                <p className="mt-1 font-bold text-[#3F1024] text-[11px]">
+                <p className="text-[10px] uppercase font-bold text-[#A5A29C]">Completed</p>
+                <p className="mt-1 font-bold text-[11px]">
                   {new Date(certificate.completed_at).toLocaleDateString()}
                 </p>
               </div>
               <div>
-                <p className="text-[10px] uppercase font-bold text-[#806777]">Issued</p>
-                <p className="mt-1 font-bold text-[#3F1024] text-[11px]">
+                <p className="text-[10px] uppercase font-bold text-[#A5A29C]">Issued</p>
+                <p className="mt-1 font-bold text-[11px]">
                   {new Date(certificate.issued_at).toLocaleDateString()}
                 </p>
               </div>
             </div>
 
             {/* Signature and Verification Footer */}
-            <div className="mt-12 flex flex-wrap items-end justify-between border-t border-[#F0DCE5] pt-6 text-left text-xs">
+            <div className="mt-10 flex flex-wrap items-end justify-between border-t border-[#353535] pt-6 text-left text-xs gap-4">
               <div>
-                <p className="font-mono text-[10px] font-bold text-[#806777]">
+                <p className="font-mono text-[10px] font-bold text-[#A5A29C]">
                   CREDENTIAL IDENTIFIER:
                 </p>
-                <p className="font-mono text-[11px] font-bold text-[#9F1239] break-all max-w-sm">
+                <p className="font-mono text-[11px] font-bold text-[#FF8A3D] break-all max-w-sm">
                   {certificate.id}
                 </p>
               </div>
 
               <div className="text-right">
-                <p className="font-serif italic text-base font-bold text-[#3F1024]">
+                <p className="font-serif italic text-base font-bold">
                   Verified Academic Seal
                 </p>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[#BE5678]">
+                <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#FF6B2C]">
                   Ed25519 Digitally Signed
                 </p>
               </div>
@@ -236,17 +230,22 @@ function CertificatePageContent() {
         </section>
 
         {/* ────── Cryptographic Verification Card ────── */}
-        <section className="mt-6 lux-card p-6 print:hidden bg-[#FFFFFF] border border-[#F0DCE5]">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h3 className="text-sm font-extrabold text-[#3F1024]">Cryptographic Verification</h3>
-              <p className="text-xs text-[#806777]">
-                Mathematically verified signature issued by the institutional private key.
-              </p>
+        <section className="mt-6 rounded-3xl p-6 print:hidden bg-[#1B1B1B] border border-[#353535] shadow-lg">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-[#10B981]/15 text-[#34D399]">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-extrabold">Cryptographic Integrity Verification</h3>
+                <p className="text-xs text-[#A5A29C]">
+                  Mathematically verified signature issued by the institutional Ed25519 private key.
+                </p>
+              </div>
             </div>
 
             <span
-              className={`rounded-full px-3 py-1 text-xs font-bold ${
+              className={`rounded-full px-3 py-1 text-xs font-mono font-bold ${
                 verified?.is_valid ? "badge-success" : "badge-warning"
               }`}
             >
@@ -254,22 +253,22 @@ function CertificatePageContent() {
             </span>
           </div>
 
-          <p className="mt-3 text-xs leading-relaxed text-[#3F1024]">
+          <p className="mt-3 text-xs leading-relaxed text-[#A5A29C]">
             {verified?.message ||
-              "Cryptographic integrity is being evaluated against registered public keys."}
+              "Cryptographic integrity is being evaluated against registered institutional public keys."}
           </p>
 
-          <div className="mt-4 rounded-xl p-3.5 space-y-1.5 font-mono text-[11px] bg-[#FFF7FA] border border-[#F0DCE5]">
-            <p className="break-all text-[#806777]">
-              <strong className="text-[#3F1024]">Payload Digest (SHA-256):</strong>{" "}
+          <div className="mt-4 rounded-xl p-3.5 space-y-1.5 font-mono text-[11px] bg-[#121212] border border-[#292929]">
+            <p className="break-all text-[#A5A29C]">
+              <strong className="text-[#F7F4EF]">Payload Digest (SHA-256):</strong>{" "}
               {certificate.payload_digest}
             </p>
-            <p className="text-[#806777]">
-              <strong className="text-[#3F1024]">Algorithm:</strong> {certificate.algorithm} ·{" "}
-              <strong className="text-[#3F1024]">Key Identifier:</strong> {certificate.key_id}
+            <p className="text-[#A5A29C]">
+              <strong className="text-[#F7F4EF]">Algorithm:</strong> {certificate.algorithm} ·{" "}
+              <strong className="text-[#F7F4EF]">Key Identifier:</strong> {certificate.key_id}
             </p>
-            <p className="break-all text-[#A38C9B]">
-              <strong className="text-[#3F1024]">Signature:</strong> {certificate.signature}
+            <p className="break-all text-[#77736D]">
+              <strong className="text-[#F7F4EF]">Signature:</strong> {certificate.signature}
             </p>
           </div>
         </section>
@@ -282,11 +281,8 @@ export default function CertificatePage() {
   return (
     <Suspense
       fallback={
-        <main
-          className="flex min-h-screen items-center justify-center"
-          style={{ backgroundColor: "var(--color-background)" }}
-        >
-          <p className="text-sm font-semibold text-[#806777]">Loading certificate credential...</p>
+        <main className="flex min-h-screen items-center justify-center bg-[#101010]">
+          <p className="text-xs font-mono font-semibold text-[#A5A29C]">Loading certificate credential...</p>
         </main>
       }
     >

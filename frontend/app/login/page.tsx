@@ -3,6 +3,16 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  Lock,
+  ArrowRight,
+  GraduationCap,
+  Users,
+  Eye,
+  EyeOff,
+  AlertCircle,
+} from "lucide-react";
+import { CredLabLogo } from "@/components/CredLabLogo";
 
 type LoginResponse = {
   user?: {
@@ -112,91 +122,84 @@ export default function LoginPage() {
   }
 
   return (
-    <main
-      className="relative flex min-h-screen flex-1 items-center justify-center overflow-hidden px-4 py-10 sm:px-6 sm:py-16"
-      style={{ backgroundColor: "var(--color-background)" }}
-    >
-      {/* Soft Ambient Burgundy Glows */}
+    <main className="relative flex min-h-screen flex-1 items-center justify-center overflow-hidden px-4 py-8 sm:px-6 sm:py-14 bg-[#101010] text-[#F7F4EF]">
+      {/* Top Navigation Bar with Logo */}
+      <header className="absolute top-0 left-0 right-0 p-4 sm:p-6 flex items-center justify-between max-w-7xl mx-auto z-20">
+        <Link href="/" aria-label="CredLab Home">
+          <CredLabLogo size="sm" showWordmark={true} />
+        </Link>
+      </header>
+
+      {/* Ambient Lighting Gradients */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -left-36 -top-36 h-[32rem] w-[32rem] rounded-full bg-[#FBEAF0] opacity-80 blur-[100px]" />
-        <div className="absolute -bottom-36 -right-36 h-[34rem] w-[34rem] rounded-full bg-[#FFF0F5] opacity-90 blur-[120px]" />
+        <div className="absolute top-1/4 left-1/4 h-[30rem] w-[30rem] rounded-full bg-[#FF6B2C]/10 blur-[130px]" />
+        <div className="absolute bottom-1/4 right-1/4 h-[28rem] w-[28rem] rounded-full bg-[#FFB547]/8 blur-[120px]" />
       </div>
 
-      <div className="relative z-10 w-full max-w-5xl overflow-hidden lux-card shadow-xl border border-[#F0DCE5]">
-        <div className="grid lg:grid-cols-[1.1fr_1fr]">
-          {/* Left panel: Info & Institutional Branding */}
-          <section className="hidden flex-col justify-between p-10 lg:flex xl:p-14 bg-[#FFF7FA] border-r border-[#F0DCE5]">
+      <div className="relative z-10 w-full max-w-5xl overflow-hidden rounded-3xl border border-[#353535] bg-[#1B1B1B] shadow-2xl mt-12 sm:mt-8">
+        <div className="grid lg:grid-cols-12">
+          {/* Left Panel: Information & Brand Context */}
+          <section className="hidden lg:flex lg:col-span-6 flex-col justify-between p-10 xl:p-14 bg-[#141414] border-b lg:border-b-0 lg:border-r border-[#292929]">
             <div>
-              <Link href="/" className="inline-flex items-center gap-3 group">
-                <span
-                  className="flex h-11 w-11 items-center justify-center rounded-2xl text-xl font-bold text-white shadow-sm"
-                  style={{ background: "var(--primary-gradient)" }}
-                >
-                  ⬡
-                </span>
-                <div>
-                  <span className="block font-bold tracking-tight text-[#3F1024]">LabOS</span>
-                  <span className="block text-[11px] font-semibold uppercase tracking-wider text-[#BE5678]">
-                    University Assessment Platform
-                  </span>
-                </div>
-              </Link>
-
-              <div className="mt-16">
-                <div className="inline-flex items-center gap-2 rounded-full border border-[#F0DCE5] bg-[#FFFFFF] px-3.5 py-1.5 text-xs font-semibold text-[#9F1239]">
-                  <span className="h-2 w-2 rounded-full bg-[#9F1239] animate-pulse" />
-                  Academic Session 2026–2027
-                </div>
-
-                <h1 className="mt-6 text-3xl font-extrabold leading-tight tracking-tight text-[#3F1024] xl:text-4xl">
-                  Unified Platform for{" "}
-                  <span className="text-gradient-primary">Digital Laboratories</span>
-                </h1>
-
-                <p className="mt-4 text-sm leading-relaxed text-[#806777]">
-                  Automated code grading, anti-cheat sandbox execution, sequential practical
-                  roadmaps, and cryptographically signed completion diplomas.
-                </p>
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#FF6B2C]/25 bg-[#FF6B2C]/10 px-3.5 py-1.5 text-xs font-mono font-semibold text-[#FF8A3D]">
+                <span className="h-2 w-2 rounded-full bg-[#FF6B2C] animate-pulse" />
+                Institutional Terminal Access
               </div>
+
+              <h1 className="mt-8 text-3xl font-extrabold leading-tight tracking-tight text-[#F7F4EF] xl:text-4xl">
+                Continuous Assessment &{" "}
+                <span className="bg-gradient-to-r from-[#FF6B2C] to-[#FFB547] bg-clip-text text-transparent">
+                  Verified Skills
+                </span>
+              </h1>
+
+              <p className="mt-4 text-sm leading-relaxed text-[#A5A29C]">
+                Deterministic sandbox grading, sequential practical progress, and cryptographic Ed25519 digital diplomas.
+              </p>
             </div>
 
-            <div className="mt-12 space-y-3">
-              <div className="flex items-center gap-3 rounded-xl p-3.5 bg-[#FFFFFF] border border-[#F0DCE5]">
-                <span className="text-xl">🎓</span>
+            {/* Credential Format Guides */}
+            <div className="mt-10 space-y-3 font-mono text-xs">
+              <div className="flex items-center gap-3.5 rounded-2xl p-3.5 bg-[#161616] border border-[#292929]">
+                <div className="p-2 rounded-xl bg-[#FF6B2C]/10 text-[#FF6B2C]">
+                  <GraduationCap className="w-4 h-4" />
+                </div>
                 <div>
-                  <p className="text-xs font-bold text-[#3F1024]">Student Accounts</p>
-                  <p className="text-[11px] text-[#806777]">
-                    Enrollment format: <code className="font-semibold text-[#9F1239]">MUR2502214</code>
+                  <p className="font-bold text-[#F7F4EF]">Student Account ID</p>
+                  <p className="text-[11px] text-[#A5A29C]">
+                    Pattern: <code className="font-semibold text-[#FF8A3D]">MUR2502214</code>
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 rounded-xl p-3.5 bg-[#FFFFFF] border border-[#F0DCE5]">
-                <span className="text-xl">👨‍🏫</span>
+              <div className="flex items-center gap-3.5 rounded-2xl p-3.5 bg-[#161616] border border-[#292929]">
+                <div className="p-2 rounded-xl bg-[#FFB547]/10 text-[#FFB547]">
+                  <Users className="w-4 h-4" />
+                </div>
                 <div>
-                  <p className="text-xs font-bold text-[#3F1024]">Faculty & Administrators</p>
-                  <p className="text-[11px] text-[#806777]">
-                    Staff ID format: <code className="font-semibold text-[#BE5678]">EMP0000001</code>
+                  <p className="font-bold text-[#F7F4EF]">Faculty & Administrator ID</p>
+                  <p className="text-[11px] text-[#A5A29C]">
+                    Pattern: <code className="font-semibold text-[#FF8A3D]">EMP0000001</code>
                   </p>
                 </div>
               </div>
             </div>
           </section>
 
-          {/* Right panel: Sign In Form */}
-          <section className="flex flex-col justify-center p-7 sm:p-10 lg:p-12 xl:p-14 bg-[#FFFFFF]">
+          {/* Right Panel: Sign In Form */}
+          <section className="lg:col-span-6 flex flex-col justify-center p-7 sm:p-10 lg:p-12 xl:p-14 bg-[#1B1B1B]">
             <div className="mb-8 flex items-center justify-between">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#BE5678]">
-                  Secure Access
+                <p className="text-xs font-mono font-bold uppercase tracking-widest text-[#FF8A3D]">
+                  Secure Authentication
                 </p>
-                <h2 className="mt-1 text-2xl font-extrabold text-[#3F1024] sm:text-3xl">
+                <h2 className="mt-1 text-2xl font-extrabold sm:text-3xl tracking-tight text-[#F7F4EF]">
                   Sign In
                 </h2>
               </div>
               <Link
                 href="/"
-                className="text-xs font-semibold text-[#806777] hover:text-[#9F1239] transition-colors"
+                className="text-xs font-semibold text-[#A5A29C] hover:text-[#FF6B2C] transition-colors"
               >
                 ← Back home
               </Link>
@@ -206,7 +209,7 @@ export default function LoginPage() {
               <div>
                 <label
                   htmlFor="enrollmentNumber"
-                  className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#3F1024]"
+                  className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#F7F4EF]"
                 >
                   Enrollment Number / Staff ID
                 </label>
@@ -233,7 +236,7 @@ export default function LoginPage() {
               <div>
                 <label
                   htmlFor="password"
-                  className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#3F1024]"
+                  className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#F7F4EF]"
                 >
                   Password
                 </label>
@@ -250,16 +253,16 @@ export default function LoginPage() {
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                     disabled={loading}
-                    className="input-field pr-16"
+                    className="input-field pr-12"
                   />
 
                   <button
                     type="button"
                     onClick={() => setShowPassword((current) => !current)}
                     aria-label={showPassword ? "Hide password" : "Show password"}
-                    className="absolute inset-y-0 right-2 my-auto h-8 px-2.5 text-xs font-semibold text-[#806777] hover:text-[#9F1239] transition-colors"
+                    className="absolute inset-y-0 right-2 my-auto h-8 px-2.5 text-[#A5A29C] hover:text-[#FF6B2C] transition-colors flex items-center justify-center"
                   >
-                    {showPassword ? "Hide" : "Show"}
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
@@ -268,57 +271,28 @@ export default function LoginPage() {
                 <div
                   role="alert"
                   aria-live="polite"
-                  className="rounded-xl p-3.5 text-xs leading-5 badge-danger animate-fade-in"
+                  className="rounded-xl p-3 text-xs leading-relaxed badge-danger animate-fade-in flex items-start gap-2"
                 >
-                  {error}
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-[#EF4444]" />
+                  <span>{error}</span>
                 </div>
               )}
 
               <button
                 type="submit"
                 disabled={loading}
-                className="btn-primary w-full !py-3.5 !text-sm font-bold tracking-wide"
+                className="btn-primary w-full !py-3.5 !text-sm font-bold tracking-wide flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
-                    <svg
-                      className="h-4 w-4 animate-spin text-white"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      aria-hidden="true"
-                    >
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="9"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        className="opacity-25"
-                      />
-                      <path
-                        d="M21 12a9 9 0 0 0-9-9"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <span>Authenticating credentials...</span>
+                    <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                    <span>Verifying session...</span>
                   </>
                 ) : (
                   <>
-                    <span>Sign In Securely</span>
-                    <svg
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                      className="h-4 w-4"
-                      aria-hidden="true"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
+                    <Lock className="w-4 h-4" />
+                    <span>Sign In to CredLab</span>
+                    <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </button>
@@ -326,35 +300,35 @@ export default function LoginPage() {
 
             <div className="divider my-7" />
 
-            {/* Registration Pathways */}
+            {/* Registration Links */}
             <div>
-              <p className="text-center text-xs font-semibold text-[#806777]">
-                New user? Register an account
+              <p className="text-center text-xs font-semibold text-[#A5A29C]">
+                New to the platform? Create an account
               </p>
               <div className="mt-3 grid grid-cols-3 gap-2">
                 <Link
                   href="/register/student"
-                  className="rounded-xl px-2 py-2.5 text-center text-xs font-bold transition-all bg-[#FFF7FA] border border-[#F0DCE5] text-[#3F1024] hover:bg-[#FBEAF0] hover:text-[#9F1239]"
+                  className="rounded-xl px-2 py-2.5 text-center text-xs font-bold transition-all bg-[#202020] border border-[#353535] text-[#F7F4EF] hover:border-[#FF6B2C] hover:text-[#FF6B2C]"
                 >
                   Student
                 </Link>
                 <Link
                   href="/register/faculty"
-                  className="rounded-xl px-2 py-2.5 text-center text-xs font-bold transition-all bg-[#FFF7FA] border border-[#F0DCE5] text-[#3F1024] hover:bg-[#FBEAF0] hover:text-[#9F1239]"
+                  className="rounded-xl px-2 py-2.5 text-center text-xs font-bold transition-all bg-[#202020] border border-[#353535] text-[#F7F4EF] hover:border-[#FF6B2C] hover:text-[#FF6B2C]"
                 >
                   Faculty
                 </Link>
                 <Link
                   href="/register/admin"
-                  className="rounded-xl px-2 py-2.5 text-center text-xs font-bold transition-all bg-[#FFF7FA] border border-[#F0DCE5] text-[#3F1024] hover:bg-[#FBEAF0] hover:text-[#9F1239]"
+                  className="rounded-xl px-2 py-2.5 text-center text-xs font-bold transition-all bg-[#202020] border border-[#353535] text-[#F7F4EF] hover:border-[#FF6B2C] hover:text-[#FF6B2C]"
                 >
                   Admin
                 </Link>
               </div>
             </div>
 
-            <p className="mt-7 text-center text-[11px] text-[#A38C9B]">
-              LabOS · End-to-End Cryptographically Secured University Platform
+            <p className="mt-6 text-center text-[11px] font-mono text-[#77736D]">
+              CredLab · Cryptographically Secured University Platform
             </p>
           </section>
         </div>

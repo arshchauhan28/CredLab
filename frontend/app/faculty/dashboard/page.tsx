@@ -6,6 +6,8 @@ import type { FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { UserResponse } from "@/types/auth";
+import { CredLabLogo } from "@/components/CredLabLogo";
+import { DashboardAmbientGrid } from "@/components/3d/DashboardAmbientGrid";
 
 type Course = {
   id: number;
@@ -475,8 +477,8 @@ export default function FacultyDashboardPage() {
         style={{ backgroundColor: "var(--color-background)" }}
       >
         <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 animate-spin rounded-full border-3 border-[#9F1239] border-t-transparent" />
-          <p className="text-sm font-semibold text-[#806777]">
+          <div className="h-10 w-10 animate-spin rounded-full border-3 border-[#FF6B2C] border-t-transparent" />
+          <p className="text-sm font-semibold text-[#706C65] dark:text-[#A5A29C]">
             Loading faculty control center...
           </p>
         </div>
@@ -490,9 +492,9 @@ export default function FacultyDashboardPage() {
         className="flex min-h-screen items-center justify-center p-6"
         style={{ backgroundColor: "var(--color-background)" }}
       >
-        <div className="lux-card max-w-lg p-8 text-center shadow-xl border border-[#F0DCE5]">
-          <h1 className="text-xl font-extrabold text-[#3F1024]">Unable to load faculty workspace</h1>
-          <p className="mt-2 text-sm text-[#806777]">
+        <div className="lux-card max-w-lg p-8 text-center shadow-xl border border-[#E4DDD2] dark:border-[#2D2D2D] bg-[#FFFCF6] dark:bg-[#1C1C1C]">
+          <h1 className="text-xl font-extrabold text-[#191919] dark:text-[#F7F4EF]">Unable to load faculty workspace</h1>
+          <p className="mt-2 text-sm text-[#706C65] dark:text-[#A5A29C]">
             {error || "Session verification failed."}
           </p>
           <button
@@ -522,23 +524,15 @@ export default function FacultyDashboardPage() {
   const currentCourse = courses.find((c) => c.id === courseId);
 
   return (
-    <main className="min-h-screen" style={{ backgroundColor: "var(--color-background)" }}>
+    <main className="min-h-screen bg-[#101010] text-[#F7F4EF]">
       {/* ────── Fixed Desktop Sidebar ────── */}
-      <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r border-[#F0DCE5] bg-[#FFFFFF] lg:flex">
-        <div className="border-b border-[#F0DCE5] p-5">
+      <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r border-[#353535] bg-[#121212] lg:flex">
+        <div className="border-b border-[#353535] p-5">
           <Link href="/faculty/dashboard" className="flex items-center gap-3 group">
-            <span
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-lg font-bold text-white shadow-xs"
-              style={{ background: "var(--primary-gradient)" }}
-            >
-              ⬡
+            <CredLabLogo size="sm" showWordmark={true} />
+            <span className="hidden sm:inline-block text-[11px] font-mono font-semibold uppercase tracking-wider text-[#A5A29C]">
+              Faculty
             </span>
-            <div>
-              <p className="text-sm font-bold text-[#3F1024]">LabOS</p>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-[#BE5678]">
-                Faculty Suite
-              </p>
-            </div>
           </Link>
         </div>
 
@@ -552,7 +546,7 @@ export default function FacultyDashboardPage() {
                 className={`w-full flex items-center justify-between rounded-xl px-4 py-2.5 text-left text-xs font-bold transition-all ${
                   section === item
                     ? "text-white shadow-xs"
-                    : "text-[#806777] hover:bg-[#FBEAF0] hover:text-[#9F1239]"
+                    : "text-[#A5A29C] hover:bg-[#202020] hover:text-[#FF6B2C]"
                 }`}
                 style={section === item ? { background: "var(--primary-gradient)" } : undefined}
               >
@@ -560,7 +554,7 @@ export default function FacultyDashboardPage() {
                 {isCert && totalPendingCertificates > 0 && (
                   <span
                     className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
-                      section === item ? "bg-white text-[#9F1239]" : "bg-[#9F1239] text-white"
+                      section === item ? "bg-white text-[#D94F16]" : "bg-[#FF6B2C] text-white"
                     }`}
                   >
                     {totalPendingCertificates}
@@ -571,20 +565,20 @@ export default function FacultyDashboardPage() {
           })}
         </nav>
 
-        <div className="border-t border-[#F0DCE5] p-4 bg-[#FFF7FA]">
-          <p className="truncate text-xs font-bold text-[#3F1024]">{user.name}</p>
-          <p className="text-[11px] font-semibold text-[#806777]">Authorized Instructor</p>
+        <div className="border-t border-[#353535] p-4 bg-[#161616]">
+          <p className="truncate text-xs font-bold text-[#F7F4EF]">{user.name}</p>
+          <p className="text-[11px] font-mono font-semibold text-[#A5A29C]">Authorized Instructor</p>
         </div>
       </aside>
 
       {/* ────── Main Content Area ────── */}
       <div className="lg:pl-64">
         {/* Top Sticky Header */}
-        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-[#F0DCE5] bg-[#FFFFFF]/90 px-5 py-3.5 backdrop-blur-md sm:px-8">
+        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-[#353535] bg-[#121212]/90 px-5 py-3.5 backdrop-blur-md sm:px-8">
           <div>
-            <h1 className="text-sm font-extrabold text-[#3F1024]">{section}</h1>
-            <p className="text-[11px] font-semibold text-[#806777]">
-              Subject curriculum, direct practical management, automated evaluation & Ed25519 certificates
+            <h1 className="text-sm font-extrabold text-[#F7F4EF]">{section}</h1>
+            <p className="text-[11px] font-mono font-semibold text-[#A5A29C]">
+              Subject curriculum, practical management, automated evaluation & Ed25519 certificates
             </p>
           </div>
 
@@ -598,21 +592,38 @@ export default function FacultyDashboardPage() {
             </button>
             <button
               onClick={() => void logout()}
-              className="btn-secondary !py-2 !px-3.5 !text-xs font-bold text-rose-700 hover:bg-rose-50"
+              className="btn-secondary !py-2 !px-3.5 !text-xs font-bold text-rose-400 hover:bg-rose-950/20"
             >
               Log out
             </button>
           </div>
         </header>
 
+        {/* Mobile Navigation Pill Bar */}
+        <div className="flex gap-2 overflow-x-auto border-b border-[#353535] bg-[#121212] px-4 py-2.5 lg:hidden no-scrollbar">
+          {nav.map((item) => (
+            <button
+              key={item}
+              onClick={() => setSection(item)}
+              className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                section === item
+                  ? "bg-[#FF6B2C] text-white shadow-xs"
+                  : "text-[#A5A29C] hover:bg-[#202020] hover:text-[#F7F4EF] bg-[#1B1B1B] border border-[#353535]"
+              }`}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+
         {/* Global Feedback Banner */}
         {notice && (
           <div className="mx-5 mt-4 sm:mx-8">
-            <div className="flex items-center justify-between rounded-xl border border-[#BE5678]/40 bg-[#FFF7FA] p-3 text-xs font-semibold text-[#9F1239]">
+            <div className="flex items-center justify-between rounded-xl border border-[#FF6B2C]/30 bg-[#FF6B2C]/10 p-3 text-xs font-semibold text-[#FF6B2C] dark:text-[#FFB547]">
               <p>{notice}</p>
               <button
                 onClick={() => setNotice("")}
-                className="font-bold text-[#9F1239] hover:underline"
+                className="font-bold text-[#FF6B2C] dark:text-[#FFB547] hover:underline"
               >
                 Dismiss
               </button>
@@ -624,15 +635,16 @@ export default function FacultyDashboardPage() {
           {/* ───────────────── OVERVIEW ───────────────── */}
           {section === "Overview" && (
             <div className="space-y-6 animate-fade-in">
-              <section className="lux-card relative overflow-hidden p-6 sm:p-8">
-                <div className="max-w-2xl">
+              <section className="lux-card relative overflow-hidden p-6 sm:p-8 border border-[#353535] bg-gradient-to-br from-[#1B1B1B] via-[#1E1E1E] to-[#242424] shadow-lg">
+                <DashboardAmbientGrid />
+                <div className="relative z-10 max-w-2xl">
                   <span className="badge-primary px-3 py-1 text-xs font-bold rounded-full">
                     Faculty Workspace Active
                   </span>
-                  <h2 className="mt-4 text-2xl font-extrabold tracking-tight text-[#3F1024] sm:text-3xl">
+                  <h2 className="mt-4 text-2xl font-extrabold tracking-tight text-[#F7F4EF] sm:text-3xl">
                     Welcome back, Prof. {user.name}
                   </h2>
-                  <p className="mt-2 text-sm leading-relaxed text-[#806777]">
+                  <p className="mt-2 text-sm leading-relaxed text-[#A5A29C]">
                     Manage practical programming challenges directly for your assigned subjects,
                     monitor real-time student test executions, and approve cryptographically signed
                     subject diplomas.
@@ -660,21 +672,21 @@ export default function FacultyDashboardPage() {
                     desc: "Subject & lab diplomas",
                   },
                 ].map((m) => (
-                  <article key={m.label} className="lux-card p-5">
-                    <p className="text-xs font-bold uppercase tracking-wider text-[#806777]">
+                  <article key={m.label} className="lux-card p-5 border border-[#E4DDD2] dark:border-[#2D2D2D] hover:border-[#FF6B2C]/50 transition-all">
+                    <p className="text-xs font-bold uppercase tracking-wider text-[#706C65] dark:text-[#A5A29C]">
                       {m.label}
                     </p>
-                    <p className="mt-2 text-3xl font-extrabold text-[#3F1024]">{m.val}</p>
-                    <p className="mt-1 text-xs text-[#BE5678] font-semibold">{m.desc}</p>
+                    <p className="mt-2 text-3xl font-extrabold text-[#191919] dark:text-[#F7F4EF]">{m.val}</p>
+                    <p className="mt-1 text-xs text-[#D94F16] dark:text-[#FFB547] font-semibold">{m.desc}</p>
                   </article>
                 ))}
               </div>
 
               {/* Action Cards */}
               <div className="grid gap-6 md:grid-cols-2">
-                <article className="lux-card p-6">
-                  <h3 className="text-base font-bold text-[#3F1024]">Subject Practicals</h3>
-                  <p className="mt-1 text-xs text-[#806777]">
+                <article className="lux-card p-6 border border-[#E4DDD2] dark:border-[#2D2D2D]">
+                  <h3 className="text-base font-bold text-[#191919] dark:text-[#F7F4EF]">Subject Practicals</h3>
+                  <p className="mt-1 text-xs text-[#706C65] dark:text-[#A5A29C]">
                     Directly author coding challenges, configure test specifications, and assign them
                     to your active courses without laboratory layers.
                   </p>
@@ -686,11 +698,11 @@ export default function FacultyDashboardPage() {
                   </button>
                 </article>
 
-                <article className="lux-card p-6">
-                  <h3 className="text-base font-bold text-[#3F1024]">
+                <article className="lux-card p-6 border border-[#E4DDD2] dark:border-[#2D2D2D]">
+                  <h3 className="text-base font-bold text-[#191919] dark:text-[#F7F4EF]">
                     Certificate Approvals
                   </h3>
-                  <p className="mt-1 text-xs text-[#806777]">
+                  <p className="mt-1 text-xs text-[#706C65] dark:text-[#A5A29C]">
                     {totalPendingCertificates} certificate request(s) awaiting your cryptographic
                     approval ({pendingSubjectApprovals.length} subject, {pendingLabApprovals.length} lab).
                   </p>
@@ -718,9 +730,9 @@ export default function FacultyDashboardPage() {
 
           {/* ───────────────── MY COURSES ───────────────── */}
           {section === "My Courses" && (
-            <section className="lux-card mt-6 p-6 animate-fade-in">
-              <h2 className="text-lg font-bold text-[#3F1024]">Assigned Academic Courses</h2>
-              <p className="mt-1 text-xs text-[#806777]">
+            <section className="lux-card mt-6 p-6 animate-fade-in border border-[#E4DDD2] dark:border-[#2D2D2D]">
+              <h2 className="text-lg font-bold text-[#191919] dark:text-[#F7F4EF]">Assigned Academic Courses</h2>
+              <p className="mt-1 text-xs text-[#706C65] dark:text-[#A5A29C]">
                 You have administrative authority to manage practicals and issue subject completion
                 certificates for these assigned courses.
               </p>
@@ -728,17 +740,17 @@ export default function FacultyDashboardPage() {
               {courses.length > 0 ? (
                 <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {courses.map((c) => (
-                    <article key={c.id} className="lux-card p-5 transition-all card-hover bg-[#FFFFFF]">
+                    <article key={c.id} className="lux-card p-5 transition-all card-hover border border-[#E4DDD2] dark:border-[#2D2D2D] bg-[#FFFCF6] dark:bg-[#1B1B1B]">
                       <span className="badge-primary px-2.5 py-0.5 text-[10px] font-bold rounded-md">
                         {c.program}
                       </span>
-                      <h3 className="mt-3 text-base font-bold text-[#3F1024]">{c.name}</h3>
-                      <p className="mt-1 text-xs text-[#806777]">Code: {c.code || "N/A"}</p>
-                      <p className="mt-1 text-xs text-[#806777]">
+                      <h3 className="mt-3 text-base font-bold text-[#191919] dark:text-[#F7F4EF]">{c.name}</h3>
+                      <p className="mt-1 text-xs text-[#706C65] dark:text-[#A5A29C]">Code: {c.code || "N/A"}</p>
+                      <p className="mt-1 text-xs text-[#706C65] dark:text-[#A5A29C]">
                         Year {c.year_of_study} · Semester {c.semester}
                       </p>
 
-                      <div className="mt-4 flex gap-4 text-xs font-bold text-[#BE5678]">
+                      <div className="mt-4 flex gap-4 text-xs font-bold text-[#D94F16] dark:text-[#FFB547]">
                         <span>{c.lab_count} Lab Modules</span>
                         <span>{c.student_count} Students</span>
                       </div>
@@ -769,13 +781,13 @@ export default function FacultyDashboardPage() {
           {section === "Subject Practicals" && (
             <div className="space-y-6 animate-fade-in">
               {/* Subject Selector Bar */}
-              <div className="lux-card p-5">
+              <div className="lux-card p-5 border border-[#E4DDD2] dark:border-[#2D2D2D]">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
-                    <label className="text-xs font-extrabold uppercase tracking-wider text-[#3F1024]">
+                    <label className="text-xs font-extrabold uppercase tracking-wider text-[#191919] dark:text-[#F7F4EF]">
                       Selected Subject / Course
                     </label>
-                    <p className="text-xs text-[#806777]">
+                    <p className="text-xs text-[#706C65] dark:text-[#A5A29C]">
                       Practicals are directly attached to this subject curriculum.
                     </p>
                   </div>
@@ -795,7 +807,7 @@ export default function FacultyDashboardPage() {
                 </div>
 
                 {currentCourse && (
-                  <div className="mt-4 flex flex-wrap gap-2 pt-3 border-t border-[#F0DCE5] text-xs font-semibold text-[#806777]">
+                  <div className="mt-4 flex flex-wrap gap-2 pt-3 border-t border-[#E4DDD2] dark:border-[#2D2D2D] text-xs font-semibold text-[#706C65] dark:text-[#A5A29C]">
                     <span className="badge-primary px-2.5 py-0.5 rounded-md">
                       Program: {currentCourse.program}
                     </span>
@@ -812,48 +824,48 @@ export default function FacultyDashboardPage() {
               {/* Main Split: Practicals List & Add Practical Form */}
               <div className="grid gap-6 xl:grid-cols-2">
                 {/* Practicals for this subject */}
-                <section className="lux-card p-6">
+                <section className="lux-card p-6 border border-[#353535] bg-[#1B1B1B]">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h2 className="text-lg font-bold text-[#3F1024]">
+                      <h2 className="text-lg font-bold text-[#F7F4EF]">
                         Curriculum Practicals
                       </h2>
-                      <p className="mt-1 text-xs text-[#806777]">
+                      <p className="mt-1 text-xs text-[#A5A29C]">
                         Active coding challenges under {currentCourse?.name || "selected subject"}.
                       </p>
                     </div>
-                    <span className="rounded-full bg-[#FFF7FA] border border-[#BE5678]/40 px-3 py-1 text-xs font-extrabold text-[#9F1239]">
+                    <span className="rounded-full bg-[#FF6B2C]/10 border border-[#FF6B2C]/30 px-3 py-1 text-xs font-extrabold text-[#FF8A3D]">
                       {coursePracticals.length} Total
                     </span>
                   </div>
 
                   {coursePracticalsLoading ? (
                     <div className="mt-8 flex justify-center py-10">
-                      <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#9F1239] border-t-transparent" />
+                      <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#FF6B2C] border-t-transparent" />
                     </div>
                   ) : coursePracticals.length > 0 ? (
                     <div className="mt-5 space-y-3 max-h-[600px] overflow-y-auto pr-1">
                       {coursePracticals.map((p) => (
                         <article
                           key={p.id}
-                          className="rounded-2xl p-4 transition-all border border-[#F0DCE5] bg-[#FFFFFF] hover:border-[#BE5678]/60 shadow-xs"
+                          className="rounded-2xl p-4 transition-all border border-[#353535] bg-[#1B1B1B] hover:border-[#FF6B2C]/60 hover:bg-[#242424] shadow-xs group"
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
-                                <span className="font-extrabold text-xs text-[#9F1239] bg-[#FFF7FA] px-2 py-0.5 rounded-md border border-[#F0DCE5]">
+                                <span className="font-extrabold text-xs text-[#FF8A3D] bg-[#FF6B2C]/10 px-2 py-0.5 rounded-md border border-[#FF6B2C]/20">
                                   #{p.sequence_number}
                                 </span>
-                                <h3 className="font-bold text-sm text-[#3F1024]">
+                                <h3 className="font-bold text-sm text-[#F7F4EF]">
                                   {p.effective_title}
                                 </h3>
                               </div>
-                              <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-semibold text-[#806777]">
-                                <span className="rounded bg-rose-50 px-2 py-0.5 text-rose-700">
+                              <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-semibold">
+                                <span className="rounded-md bg-rose-500/15 border border-rose-500/20 px-2 py-0.5 text-rose-300 font-bold">
                                   Score Threshold: {p.passing_threshold ?? 100}%
                                 </span>
                                 {p.is_required && (
-                                  <span className="rounded bg-amber-50 px-2 py-0.5 text-amber-800">
+                                  <span className="rounded-md bg-amber-500/15 border border-amber-500/20 px-2 py-0.5 text-amber-300 font-bold">
                                     ★ Required for Certificate & Badge
                                   </span>
                                 )}
@@ -863,7 +875,7 @@ export default function FacultyDashboardPage() {
                             <button
                               onClick={() => void openDeletionModal(p)}
                               disabled={busy}
-                              className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 transition hover:bg-rose-100 hover:border-rose-300"
+                              className="rounded-xl border border-rose-900/60 bg-rose-950/40 px-3 py-1.5 text-xs font-bold text-rose-300 transition hover:bg-rose-900/60 hover:border-rose-400"
                               title="Delete or archive practical"
                             >
                               Delete
@@ -881,18 +893,18 @@ export default function FacultyDashboardPage() {
                 </section>
 
                 {/* Add Practical Form directly to Subject */}
-                <section className="lux-card p-6">
-                  <h2 className="text-lg font-bold text-[#3F1024]">
+                <section className="lux-card p-6 border border-[#353535] bg-[#1B1B1B]">
+                  <h2 className="text-lg font-bold text-[#F7F4EF]">
                     Add Practical to {currentCourse?.name || "Subject"}
                   </h2>
-                  <p className="mt-1 text-xs text-[#806777]">
+                  <p className="mt-1 text-xs text-[#A5A29C]">
                     Define problem requirements, test specifications, and permitted execution languages.
                   </p>
 
                   <form onSubmit={createPractical} className="mt-5 space-y-4">
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="sm:col-span-2">
-                        <label className="text-xs font-bold uppercase tracking-wider text-[#3F1024]">
+                        <label className="text-xs font-bold uppercase tracking-wider text-[#F7F4EF]">
                           Practical Title
                         </label>
                         <input
@@ -908,7 +920,7 @@ export default function FacultyDashboardPage() {
                       </div>
 
                       <div className="sm:col-span-2">
-                        <label className="text-xs font-bold uppercase tracking-wider text-[#3F1024]">
+                        <label className="text-xs font-bold uppercase tracking-wider text-[#F7F4EF]">
                           Problem Statement & Instructions
                         </label>
                         <textarea
@@ -925,7 +937,7 @@ export default function FacultyDashboardPage() {
                       </div>
 
                       <div>
-                        <label className="text-xs font-bold uppercase tracking-wider text-[#3F1024]">
+                        <label className="text-xs font-bold uppercase tracking-wider text-[#F7F4EF]">
                           Input Format
                         </label>
                         <textarea
@@ -940,7 +952,7 @@ export default function FacultyDashboardPage() {
                       </div>
 
                       <div>
-                        <label className="text-xs font-bold uppercase tracking-wider text-[#3F1024]">
+                        <label className="text-xs font-bold uppercase tracking-wider text-[#F7F4EF]">
                           Output Format
                         </label>
                         <textarea
@@ -955,7 +967,7 @@ export default function FacultyDashboardPage() {
                       </div>
 
                       <div className="sm:col-span-2">
-                        <label className="text-xs font-bold uppercase tracking-wider text-[#3F1024]">
+                        <label className="text-xs font-bold uppercase tracking-wider text-[#F7F4EF]">
                           Difficulty Level
                         </label>
                         <select
@@ -972,17 +984,17 @@ export default function FacultyDashboardPage() {
                       </div>
 
                       <div className="sm:col-span-2">
-                        <label className="text-xs font-bold uppercase tracking-wider text-[#3F1024]">
+                        <label className="text-xs font-bold uppercase tracking-wider text-[#F7F4EF]">
                           Permitted Languages
                         </label>
                         <div className="mt-2 flex flex-wrap gap-2.5">
                           {LANGS.map((l) => (
                             <label
                               key={l}
-                              className={`flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-bold cursor-pointer border ${
+                              className={`flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-bold cursor-pointer border transition-colors ${
                                 languages.includes(l)
-                                  ? "bg-[#FFF7FA] border-[#BE5678] text-[#9F1239]"
-                                  : "bg-[#FFFFFF] border-[#F0DCE5] text-[#806777]"
+                                  ? "bg-[#FF6B2C]/10 border-[#FF6B2C] text-[#FF8A3D]"
+                                  : "bg-[#161616] border-[#353535] text-[#A5A29C] hover:border-[#FF6B2C]/50"
                               }`}
                             >
                               <input
@@ -993,7 +1005,7 @@ export default function FacultyDashboardPage() {
                                     e.target.checked ? [...old, l] : old.filter((v) => v !== l),
                                   )
                                 }
-                                className="accent-[#9F1239]"
+                                className="accent-[#FF6B2C]"
                               />
                               {l.toUpperCase()}
                             </label>
@@ -1002,9 +1014,9 @@ export default function FacultyDashboardPage() {
                       </div>
 
                       {/* Sample Test Case */}
-                      <div className="sm:col-span-2 grid gap-4 sm:grid-cols-2 rounded-2xl p-4 bg-[#FFF7FA] border border-[#F0DCE5]">
+                      <div className="sm:col-span-2 grid gap-4 sm:grid-cols-2 rounded-2xl p-4 bg-[#161616] border border-[#353535]">
                         <div>
-                          <label className="text-xs font-bold uppercase tracking-wider text-[#3F1024]">
+                          <label className="text-xs font-bold uppercase tracking-wider text-[#F7F4EF]">
                             Sample Input
                           </label>
                           <textarea
@@ -1018,7 +1030,7 @@ export default function FacultyDashboardPage() {
                           />
                         </div>
                         <div>
-                          <label className="text-xs font-bold uppercase tracking-wider text-[#3F1024]">
+                          <label className="text-xs font-bold uppercase tracking-wider text-[#F7F4EF]">
                             Sample Expected Output
                           </label>
                           <textarea
@@ -1046,30 +1058,30 @@ export default function FacultyDashboardPage() {
               </div>
 
               {/* Advanced Collapsible: Custom Lab Modules */}
-              <div className="lux-card p-5">
+              <div className="lux-card p-5 border border-[#E4DDD2] dark:border-[#2D2D2D]">
                 <button
                   type="button"
                   onClick={() => setShowAdvancedLabs((x) => !x)}
                   className="flex w-full items-center justify-between text-left"
                 >
                   <div>
-                    <h3 className="text-sm font-bold text-[#3F1024]">
+                    <h3 className="text-sm font-bold text-[#191919] dark:text-[#F7F4EF]">
                       Advanced: Custom Laboratory Groupings
                     </h3>
-                    <p className="text-xs text-[#806777]">
+                    <p className="text-xs text-[#706C65] dark:text-[#A5A29C]">
                       Optional multi-lab structures, custom lab names, and manual publication toggles.
                     </p>
                   </div>
-                  <span className="text-xs font-extrabold text-[#BE5678]">
+                  <span className="text-xs font-extrabold text-[#D94F16] dark:text-[#FFB547]">
                     {showAdvancedLabs ? "▲ Hide" : "▼ Show"}
                   </span>
                 </button>
 
                 {showAdvancedLabs && (
-                  <div className="mt-6 pt-5 border-t border-[#F0DCE5] grid gap-6 xl:grid-cols-2">
+                  <div className="mt-6 pt-5 border-t border-[#E4DDD2] dark:border-[#2D2D2D] grid gap-6 xl:grid-cols-2">
                     {/* Create Lab */}
                     <div>
-                      <h4 className="text-sm font-bold text-[#3F1024]">Create Custom Lab Module</h4>
+                      <h4 className="text-sm font-bold text-[#191919] dark:text-[#F7F4EF]">Create Custom Lab Module</h4>
                       <form onSubmit={createLab} className="mt-3 space-y-3">
                         <input
                           required
@@ -1097,7 +1109,7 @@ export default function FacultyDashboardPage() {
 
                     {/* Existing Labs */}
                     <div>
-                      <h4 className="text-sm font-bold text-[#3F1024]">
+                      <h4 className="text-sm font-bold text-[#191919] dark:text-[#F7F4EF]">
                         Existing Modules for Selected Course
                       </h4>
                       <div className="mt-3 space-y-2">
@@ -1106,11 +1118,11 @@ export default function FacultyDashboardPage() {
                           .map((l) => (
                             <div
                               key={l.id}
-                              className="flex items-center justify-between rounded-xl p-3 border border-[#F0DCE5] bg-[#FFFFFF]"
+                              className="flex items-center justify-between rounded-xl p-3 border border-[#E4DDD2] dark:border-[#2D2D2D] bg-[#FFFCF6] dark:bg-[#1B1B1B]"
                             >
                               <div>
-                                <p className="text-xs font-bold text-[#3F1024]">{l.title}</p>
-                                <p className="text-[11px] text-[#806777]">
+                                <p className="text-xs font-bold text-[#191919] dark:text-[#F7F4EF]">{l.title}</p>
+                                <p className="text-[11px] text-[#706C65] dark:text-[#A5A29C]">
                                   {l.practical_count} practical(s)
                                 </p>
                               </div>
@@ -1143,9 +1155,9 @@ export default function FacultyDashboardPage() {
 
           {/* ───────────────── SUBMISSIONS ───────────────── */}
           {section === "Submissions" && (
-            <section className="lux-card mt-6 p-6 animate-fade-in">
-              <h2 className="text-lg font-bold text-[#3F1024]">Student Submissions</h2>
-              <p className="mt-1 text-xs text-[#806777]">
+            <section className="lux-card mt-6 p-6 animate-fade-in border border-[#E4DDD2] dark:border-[#2D2D2D]">
+              <h2 className="text-lg font-bold text-[#191919] dark:text-[#F7F4EF]">Student Submissions</h2>
+              <p className="mt-1 text-xs text-[#706C65] dark:text-[#A5A29C]">
                 Real-time automated evaluation logs across your assigned courses.
               </p>
 
@@ -1164,14 +1176,14 @@ export default function FacultyDashboardPage() {
                     <tbody>
                       {submissions.map((s) => (
                         <tr key={s.id}>
-                          <td className="font-bold text-[#3F1024]">
+                          <td className="font-bold text-[#191919] dark:text-[#F7F4EF]">
                             {s.student_name}
-                            <span className="block text-[10px] font-semibold text-[#806777]">
+                            <span className="block text-[10px] font-semibold text-[#706C65] dark:text-[#A5A29C]">
                               Student #{s.user_id}
                             </span>
                           </td>
-                          <td className="text-xs text-[#3F1024]">{s.question_title}</td>
-                          <td className="font-mono text-xs uppercase text-[#806777]">{s.language}</td>
+                          <td className="text-xs text-[#191919] dark:text-[#F7F4EF]">{s.question_title}</td>
+                          <td className="font-mono text-xs uppercase text-[#706C65] dark:text-[#A5A29C]">{s.language}</td>
                           <td>
                             <span
                               className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
@@ -1183,7 +1195,7 @@ export default function FacultyDashboardPage() {
                               {s.status} · {s.score}%
                             </span>
                           </td>
-                          <td className="text-xs text-[#806777]">
+                          <td className="text-xs text-[#706C65] dark:text-[#A5A29C]">
                             {new Date(s.created_at).toLocaleString()}
                           </td>
                         </tr>
@@ -1202,25 +1214,25 @@ export default function FacultyDashboardPage() {
 
           {/* ───────────────── CERTIFICATES (PART 11) ───────────────── */}
           {section === "Certificates" && (
-            <section className="lux-card mt-6 p-6 animate-fade-in">
+            <section className="lux-card mt-6 p-6 animate-fade-in border border-[#E4DDD2] dark:border-[#2D2D2D]">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-lg font-bold text-[#3F1024]">
+                  <h2 className="text-lg font-bold text-[#191919] dark:text-[#F7F4EF]">
                     Certificate Approval Center
                   </h2>
-                  <p className="mt-1 text-xs text-[#806777]">
+                  <p className="mt-1 text-xs text-[#706C65] dark:text-[#A5A29C]">
                     Verify curriculum completion and issue cryptographically signed Ed25519 diplomas.
                   </p>
                 </div>
 
                 {/* Sub-tabs: Subject Certificates vs Lab Module Certificates */}
-                <div className="flex rounded-xl bg-[#FFF7FA] p-1 border border-[#F0DCE5]">
+                <div className="flex rounded-xl bg-[#EEE8DE]/60 dark:bg-[#181818] p-1 border border-[#E4DDD2] dark:border-[#2D2D2D]">
                   <button
                     onClick={() => setCertTab("SUBJECT")}
                     className={`rounded-lg px-4 py-1.5 text-xs font-bold transition ${
                       certTab === "SUBJECT"
-                        ? "bg-[#9F1239] text-white shadow-xs"
-                        : "text-[#806777] hover:text-[#9F1239]"
+                        ? "bg-[#FF6B2C] text-white shadow-xs"
+                        : "text-[#706C65] dark:text-[#A5A29C] hover:text-[#D94F16] dark:hover:text-[#FF6B2C]"
                     }`}
                   >
                     Subject Certificates ({pendingSubjectApprovals.length})
@@ -1229,8 +1241,8 @@ export default function FacultyDashboardPage() {
                     onClick={() => setCertTab("LAB")}
                     className={`rounded-lg px-4 py-1.5 text-xs font-bold transition ${
                       certTab === "LAB"
-                        ? "bg-[#9F1239] text-white shadow-xs"
-                        : "text-[#806777] hover:text-[#9F1239]"
+                        ? "bg-[#FF6B2C] text-white shadow-xs"
+                        : "text-[#706C65] dark:text-[#A5A29C] hover:text-[#D94F16] dark:hover:text-[#FF6B2C]"
                     }`}
                   >
                     Lab Module Certificates ({pendingLabApprovals.length})
@@ -1246,7 +1258,7 @@ export default function FacultyDashboardPage() {
                       {subjectApprovals.map((a) => (
                         <article
                           key={a.id}
-                          className="lux-card p-5 bg-[#FFFFFF] border border-[#F0DCE5]"
+                          className="lux-card p-5 bg-[#FFFCF6] dark:bg-[#1B1B1B] border border-[#E4DDD2] dark:border-[#2D2D2D]"
                         >
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
@@ -1254,21 +1266,21 @@ export default function FacultyDashboardPage() {
                                 <span className="badge-primary px-2.5 py-0.5 text-[10px] font-bold rounded-md">
                                   {a.course_code || "SUBJECT"}
                                 </span>
-                                <h3 className="text-sm font-extrabold text-[#3F1024]">
+                                <h3 className="text-sm font-extrabold text-[#191919] dark:text-[#F7F4EF]">
                                   {a.course_name}
                                 </h3>
                               </div>
-                              <p className="mt-1.5 text-xs text-[#806777]">
+                              <p className="mt-1.5 text-xs text-[#706C65] dark:text-[#A5A29C]">
                                 Candidate:{" "}
-                                <span className="text-[#3F1024] font-bold">{a.student_name}</span> (
+                                <span className="text-[#191919] dark:text-[#F7F4EF] font-bold">{a.student_name}</span> (
                                 {a.student_email}) · Enrollment:{" "}
-                                <span className="font-mono text-[#3F1024]">
+                                <span className="font-mono text-[#191919] dark:text-[#F7F4EF]">
                                   {a.enrollment_number || `ID #${a.student_id}`}
                                 </span>
                               </p>
-                              <p className="mt-1 text-[11px] text-[#A38C9B]">
+                              <p className="mt-1 text-[11px] text-[#8C867E] dark:text-[#8E8982]">
                                 Completed Practicals:{" "}
-                                <span className="font-bold text-[#9F1239]">
+                                <span className="font-bold text-[#D94F16] dark:text-[#FF6B2C]">
                                   {a.total_required} / {a.total_required} (100% verified)
                                 </span>{" "}
                                 · Requested: {new Date(a.requested_at).toLocaleString()}
@@ -1289,7 +1301,7 @@ export default function FacultyDashboardPage() {
                           </div>
 
                           {a.status === "PENDING" && (
-                            <div className="mt-4 pt-3 border-t border-[#F0DCE5]">
+                            <div className="mt-4 pt-3 border-t border-[#E4DDD2] dark:border-[#2D2D2D]">
                               <input
                                 value={subjectReviewNotes[a.id] || ""}
                                 onChange={(e) =>
@@ -1309,7 +1321,7 @@ export default function FacultyDashboardPage() {
                                 <button
                                   disabled={busy}
                                   onClick={() => void reviewSubjectCertificate(a.id, "REJECT")}
-                                  className="btn-secondary !py-2 !px-4 !text-xs font-bold text-rose-700"
+                                  className="btn-secondary !py-2 !px-4 !text-xs font-bold text-rose-700 dark:text-rose-400"
                                 >
                                   Reject Request
                                 </button>
@@ -1318,8 +1330,8 @@ export default function FacultyDashboardPage() {
                           )}
 
                           {a.status !== "PENDING" && a.review_note && (
-                            <div className="mt-3 pt-2 border-t border-[#F0DCE5] text-xs text-[#806777]">
-                              <span className="font-bold text-[#3F1024]">Review Note:</span>{" "}
+                            <div className="mt-3 pt-2 border-t border-[#E4DDD2] dark:border-[#2D2D2D] text-xs text-[#706C65] dark:text-[#A5A29C]">
+                              <span className="font-bold text-[#191919] dark:text-[#F7F4EF]">Review Note:</span>{" "}
                               {a.review_note}
                             </div>
                           )}
@@ -1343,19 +1355,19 @@ export default function FacultyDashboardPage() {
                       {approvals.map((a) => (
                         <article
                           key={a.id}
-                          className="lux-card p-5 bg-[#FFFFFF] border border-[#F0DCE5]"
+                          className="lux-card p-5 bg-[#FFFCF6] dark:bg-[#1B1B1B] border border-[#E4DDD2] dark:border-[#2D2D2D]"
                         >
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
-                              <h3 className="text-sm font-extrabold text-[#3F1024]">
+                              <h3 className="text-sm font-extrabold text-[#191919] dark:text-[#F7F4EF]">
                                 {a.lab_title}
                               </h3>
-                              <p className="mt-1 text-xs text-[#806777]">
+                              <p className="mt-1 text-xs text-[#706C65] dark:text-[#A5A29C]">
                                 Candidate:{" "}
-                                <span className="text-[#3F1024] font-bold">{a.student_name}</span> (
+                                <span className="text-[#191919] dark:text-[#F7F4EF] font-bold">{a.student_name}</span> (
                                 {a.student_email})
                               </p>
-                              <p className="mt-1 text-[11px] text-[#A38C9B]">
+                              <p className="mt-1 text-[11px] text-[#8C867E] dark:text-[#8E8982]">
                                 Submission #{a.submission_id} · Requested{" "}
                                 {new Date(a.requested_at).toLocaleString()}
                               </p>
@@ -1375,7 +1387,7 @@ export default function FacultyDashboardPage() {
                           </div>
 
                           {a.status === "PENDING" && (
-                            <div className="mt-4 pt-3 border-t border-[#F0DCE5]">
+                            <div className="mt-4 pt-3 border-t border-[#E4DDD2] dark:border-[#2D2D2D]">
                               <input
                                 value={reviewNotes[a.id] || ""}
                                 onChange={(e) =>
@@ -1395,7 +1407,7 @@ export default function FacultyDashboardPage() {
                                 <button
                                   disabled={busy}
                                   onClick={() => void reviewCertificate(a.id, "REJECT")}
-                                  className="btn-secondary !py-2 !px-4 !text-xs font-bold text-rose-700"
+                                  className="btn-secondary !py-2 !px-4 !text-xs font-bold text-rose-700 dark:text-rose-400"
                                 >
                                   Reject
                                 </button>
@@ -1418,8 +1430,8 @@ export default function FacultyDashboardPage() {
 
           {/* ───────────────── PROFILE ───────────────── */}
           {section === "Profile" && (
-            <section className="lux-card mt-6 p-6 animate-fade-in">
-              <h2 className="text-lg font-bold text-[#3F1024]">Faculty Information</h2>
+            <section className="lux-card mt-6 p-6 animate-fade-in border border-[#E4DDD2] dark:border-[#2D2D2D]">
+              <h2 className="text-lg font-bold text-[#191919] dark:text-[#F7F4EF]">Faculty Information</h2>
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 {[
                   { label: "Full Name", value: user.name },
@@ -1427,36 +1439,36 @@ export default function FacultyDashboardPage() {
                   { label: "Employee Number", value: user.enrollment_number },
                   { label: "Account Status", value: user.is_active ? "Active" : "Suspended" },
                 ].map((x) => (
-                  <div key={x.label} className="p-4 rounded-xl bg-[#FFF7FA] border border-[#F0DCE5]">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-[#806777]">
+                  <div key={x.label} className="p-4 rounded-xl bg-[#EEE8DE]/40 dark:bg-[#161616] border border-[#E4DDD2] dark:border-[#2D2D2D]">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-[#706C65] dark:text-[#A5A29C]">
                       {x.label}
                     </p>
-                    <p className="mt-1 text-sm font-bold text-[#3F1024]">{x.value || "Not set"}</p>
+                    <p className="mt-1 text-sm font-bold text-[#191919] dark:text-[#F7F4EF]">{x.value || "Not set"}</p>
                   </div>
                 ))}
               </div>
             </section>
           )}
 
-          <footer className="mt-12 text-center text-xs py-4 text-[#806777]">
-            LabOS · Faculty Management System · 2026
+          <footer className="mt-12 text-center text-xs py-4 text-[#706C65] dark:text-[#A5A29C] font-mono">
+            CredLab · Faculty Management System · 2026
           </footer>
         </div>
       </div>
 
       {/* ───────────────── PRACTICAL DELETION MODAL (PART 14) ───────────────── */}
       {deletingPractical && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-          <div className="lux-card w-full max-w-lg p-6 bg-[#FFFFFF] shadow-2xl border border-rose-200 animate-scale-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="w-full max-w-lg p-6 bg-[#FFFCF6] dark:bg-[#1C1C1C] rounded-2xl shadow-2xl border border-[#E4DDD2] dark:border-[#353535] animate-scale-in text-[#191919] dark:text-[#F7F4EF]">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <span className="badge-danger px-2.5 py-0.5 text-[10px] font-extrabold rounded-md">
                   Deletion Impact Assessment
                 </span>
-                <h3 className="mt-2 text-base font-extrabold text-[#3F1024]">
+                <h3 className="mt-2 text-base font-extrabold text-[#191919] dark:text-[#F7F4EF]">
                   Delete Practical #{deletingPractical.sequence_number}
                 </h3>
-                <p className="mt-1 text-xs text-[#806777] font-semibold">
+                <p className="mt-1 text-xs text-[#706C65] dark:text-[#A5A29C] font-semibold">
                   {deletingPractical.effective_title}
                 </p>
               </div>
@@ -1465,7 +1477,7 @@ export default function FacultyDashboardPage() {
                   setDeletingPractical(null);
                   setDeletionPreview(null);
                 }}
-                className="text-[#806777] hover:text-[#3F1024] font-bold text-sm"
+                className="text-[#706C65] dark:text-[#A5A29C] hover:text-[#191919] dark:hover:text-[#F7F4EF] font-bold text-sm"
               >
                 ✕
               </button>
@@ -1473,29 +1485,29 @@ export default function FacultyDashboardPage() {
 
             {deletionLoading ? (
               <div className="py-8 text-center">
-                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[#9F1239] border-t-transparent" />
-                <p className="mt-3 text-xs text-[#806777]">Analyzing candidate dependencies...</p>
+                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[#FF6B2C] border-t-transparent" />
+                <p className="mt-3 text-xs text-[#706C65] dark:text-[#A5A29C]">Analyzing candidate dependencies...</p>
               </div>
             ) : deletionPreview ? (
               <div className="mt-4 space-y-4">
-                <div className="rounded-xl p-3 bg-[#FFF7FA] border border-[#F0DCE5] text-xs space-y-1">
+                <div className="rounded-xl p-3 bg-[#EEE8DE]/40 dark:bg-[#161616] border border-[#E4DDD2] dark:border-[#2D2D2D] text-xs space-y-1">
                   <p>
-                    <span className="font-bold text-[#3F1024]">Subject:</span>{" "}
+                    <span className="font-bold text-[#191919] dark:text-[#F7F4EF]">Subject:</span>{" "}
                     {deletionPreview.subject_name}
                   </p>
                   <p>
-                    <span className="font-bold text-[#3F1024]">Recorded Submissions:</span>{" "}
-                    <span className="font-bold text-[#9F1239]">
+                    <span className="font-bold text-[#191919] dark:text-[#F7F4EF]">Recorded Submissions:</span>{" "}
+                    <span className="font-bold text-[#D94F16] dark:text-[#FF6B2C]">
                       {deletionPreview.historical_submissions_count}
                     </span>
                   </p>
                   <p>
-                    <span className="font-bold text-[#3F1024]">Action Policy:</span>{" "}
+                    <span className="font-bold text-[#191919] dark:text-[#F7F4EF]">Action Policy:</span>{" "}
                     <span
                       className={`font-extrabold ${
                         deletionPreview.has_historical_activity
-                          ? "text-amber-700"
-                          : "text-emerald-700"
+                          ? "text-amber-700 dark:text-amber-400"
+                          : "text-emerald-700 dark:text-emerald-400"
                       }`}
                     >
                       {deletionPreview.has_historical_activity
@@ -1508,8 +1520,8 @@ export default function FacultyDashboardPage() {
                 <div
                   className={`rounded-xl p-3.5 text-xs font-semibold leading-relaxed border ${
                     deletionPreview.has_historical_activity
-                      ? "bg-amber-50 border-amber-200 text-amber-900"
-                      : "bg-emerald-50 border-emerald-200 text-emerald-900"
+                      ? "bg-amber-500/10 border-amber-500/20 text-amber-800 dark:text-amber-300"
+                      : "bg-emerald-500/10 border-emerald-500/20 text-emerald-800 dark:text-emerald-300"
                   }`}
                 >
                   {deletionPreview.warning_message}
@@ -1530,7 +1542,7 @@ export default function FacultyDashboardPage() {
                     type="button"
                     disabled={busy}
                     onClick={() => void confirmDeletePractical()}
-                    className="rounded-xl bg-[#9F1239] px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-[#800F2F] disabled:opacity-50"
+                    className="rounded-xl bg-[#DC2626] hover:bg-[#B91C1C] px-4 py-2 text-xs font-bold text-white shadow-xs transition disabled:opacity-50"
                   >
                     {busy
                       ? "Processing..."
@@ -1550,9 +1562,9 @@ export default function FacultyDashboardPage() {
 
 function Empty({ title, text }: { title: string; text: string }) {
   return (
-    <div className="mt-6 rounded-2xl p-8 text-center border border-dashed border-[#F0DCE5] bg-[#FFF7FA]">
-      <h3 className="text-sm font-bold text-[#3F1024]">{title}</h3>
-      <p className="mt-1.5 text-xs max-w-md mx-auto text-[#806777]">{text}</p>
+    <div className="mt-6 rounded-2xl p-8 text-center border border-dashed border-[#E4DDD2] dark:border-[#2D2D2D] bg-[#EEE8DE]/20 dark:bg-[#161616]/50">
+      <h3 className="text-sm font-bold text-[#191919] dark:text-[#F7F4EF]">{title}</h3>
+      <p className="mt-1.5 text-xs max-w-md mx-auto text-[#706C65] dark:text-[#A5A29C]">{text}</p>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { ThemeScript } from "@/components/theme/ThemeScript";
 import "./globals.css";
 
 const inter = Inter({
@@ -15,9 +16,12 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LabOS — University Secure Coding Assessment Platform",
+  title: "CredLab — Secure Coding & Practical Assessment Platform",
   description:
-    "An institutional laboratory assessment system for continuous coding practice, cryptographic digital certificates, and academic integrity.",
+    "Your Code. Your Skills. Your Credibility. High-integrity institutional laboratory assessment platform with automated deterministic sandboxes and Ed25519 cryptographic credentials.",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -28,15 +32,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className={`dark ${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      data-theme="dark"
+      style={{ colorScheme: "dark" }}
     >
-      <body
-        className="min-h-full flex flex-col antialiased selection:bg-rose-100 selection:text-rose-900"
-        style={{
-          backgroundColor: "var(--color-background)",
-          color: "var(--color-text)",
-        }}
-      >
+      <head>
+        <ThemeScript />
+      </head>
+      <body className="min-h-full flex flex-col antialiased bg-[#101010] text-[#F7F4EF] selection:bg-[#FF6B2C]/20 selection:text-[#FF6B2C]">
         {children}
       </body>
     </html>

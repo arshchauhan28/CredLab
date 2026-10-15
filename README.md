@@ -1,8 +1,21 @@
-# Secure Coding Assessment Platform
+# CredLab — Secure Coding Assessment Platform
 
-A Next.js + FastAPI platform for academic subjects, automatic student enrollment, faculty-managed practical labs, sandboxed coding, test-case grading, submission history, progress statistics, and faculty-approved completion certificates.
+> **"Your Code. Your Skills. Your Credibility."**
 
-## Current stack
+CredLab is an enterprise-grade university coding assessment and practical laboratory platform built with Next.js App Router, React 19, Tailwind CSS 4, and FastAPI. It delivers an immersive Industrial Futurism developer experience featuring interactive 3D verification visuals, a permanent high-contrast dark design system, sandboxed multi-language execution (Judge0), cryptographic Ed25519-signed completion certificates, and multi-role workflows for students, faculty, and administrators.
+
+## Features & Highlights
+
+- **Branded Design System:** Industrial Futurism aesthetic featuring charcoal (`#101010`, `#1B1B1B`), burnt orange (`#FF6B2C`), amber (`#FFB547`), and warm-white (`#F7F4EF`) palettes, custom SVG code-verification emblem (`CredLabLogo`), and responsive typography.
+- **Dynamic 3D Visual Experience:** Interactive Three.js 3D centerpiece on the landing page depicting code brackets and a glowing verification checkmark with ambient lighting, mouse parallax, and accessible static fallback.
+- **Permanent Dark Theme:** Unified, high-contrast dark theme with zero theme switching or FOIC, standardized inputs, cards, and WCAG AA contrast compliance across all role dashboards.
+- **Multi-Role Workflows:**
+  - **Students:** Automated academic course enrollment, Monaco-based sandboxed coding environment, real-time Judge0 grading, sequential practical unlocking, and verifiable Ed25519-signed completion certificates.
+  - **Faculty:** Practical lab authoring, automated & AI-assisted test-case generation, submission audits, grade analytics, lab completion certificate issuance, and safe deletion/archiving.
+  - **Administrators:** Comprehensive institution governance, user management, registration request approvals (faculty/admin onboarding), course & curriculum management with deletion dependency safety, and audit logs.
+- **Security-First Architecture:** HttpOnly `scp_session` cookies, server-side Next.js reverse proxy (`/api/admin/[...path]`, `/api/proxy/[...path]`), Argon2 password hashing, and role-based access control.
+
+## Current Stack
 
 - **Frontend:** Next.js App Router, React, TypeScript, Tailwind CSS 4.
 - **Backend:** FastAPI, Pydantic, SQLAlchemy 2, Alembic.

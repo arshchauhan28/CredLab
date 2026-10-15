@@ -43,22 +43,25 @@ export default function ApiTestPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-slate-950 p-8 text-white">
-      <h1 className="text-2xl font-semibold">
+    <main className="min-h-screen bg-[#101010] p-8 text-[#F7F4EF]">
+      <h1 className="text-2xl font-extrabold tracking-tight">
         FastAPI Connection Test
       </h1>
+      <p className="mt-1 text-xs text-[#A5A29C]">
+        CredLab backend connectivity verification
+      </p>
 
-      <div className="mt-6 rounded-xl border border-slate-700 p-5">
+      <div className="mt-6 rounded-2xl border border-[#353535] bg-[#1B1B1B] p-6 max-w-lg">
         {health.status === "loading" && (
-          <p>Checking backend connection...</p>
+          <p className="text-xs font-semibold text-[#A5A29C]">Checking backend connection...</p>
         )}
 
         {health.status === "success" && (
-          <p className="text-green-400">{health.message}</p>
+          <p className="text-xs font-mono font-bold text-emerald-400">{health.message}</p>
         )}
 
         {health.status === "error" && (
-          <p className="text-red-400">
+          <p className="text-xs font-mono font-bold text-rose-400">
             Connection failed: {health.message}
           </p>
         )}

@@ -8,6 +8,8 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import type { UserResponse } from "@/types/auth";
 import { PROGRAM_OPTIONS } from "@/lib/academic-options";
+import { CredLabLogo } from "@/components/CredLabLogo";
+import { DashboardAmbientGrid } from "@/components/3d/DashboardAmbientGrid";
 
 type Course = {
   id: number;
@@ -119,8 +121,8 @@ type Tab = "Overview" | "My Labs" | "Submissions" | "Statistics" | "Achievements
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
   loading: () => (
-    <div className="flex h-full min-h-[420px] flex-col items-center justify-center gap-3 text-xs text-[#806777] bg-[#1e1e1e]">
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#BE5678] border-t-transparent" />
+    <div className="flex h-full min-h-[420px] flex-col items-center justify-center gap-3 text-xs text-[#A5A29C] bg-[#1e1e1e]">
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#FF6B2C] border-t-transparent" />
       <span>Loading code editor...</span>
     </div>
   ),
@@ -626,8 +628,8 @@ export default function StudentDashboardPage() {
         style={{ backgroundColor: "var(--color-background)" }}
       >
         <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 animate-spin rounded-full border-3 border-[#9F1239] border-t-transparent" />
-          <p className="text-sm font-semibold text-[#806777]">
+          <div className="h-10 w-10 animate-spin rounded-full border-3 border-[#FF6B2C] border-t-transparent" />
+          <p className="text-sm font-semibold text-[#706C65] dark:text-[#A5A29C]">
             Loading university laboratory workspace...
           </p>
         </div>
@@ -641,12 +643,12 @@ export default function StudentDashboardPage() {
         className="flex min-h-screen items-center justify-center p-6"
         style={{ backgroundColor: "var(--color-background)" }}
       >
-        <section className="lux-card max-w-lg p-8 text-center shadow-xl border border-[#F0DCE5]">
+        <section className="lux-card max-w-lg p-8 text-center shadow-xl border border-[#E4DDD2] dark:border-[#2D2D2D] bg-[#FFFCF6] dark:bg-[#1B1B1B]">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl badge-danger text-xl">
             ⚠
           </div>
-          <h1 className="mt-4 text-xl font-bold text-[#3F1024]">Unable to load workspace</h1>
-          <p className="mt-2 text-sm leading-6 text-[#806777]">
+          <h1 className="mt-4 text-xl font-bold text-[#191919] dark:text-[#F7F4EF]">Unable to load workspace</h1>
+          <p className="mt-2 text-sm leading-6 text-[#706C65] dark:text-[#A5A29C]">
             {error || "Your session has expired. Please sign in again."}
           </p>
           <div className="mt-6 flex justify-center gap-3">
@@ -673,26 +675,18 @@ export default function StudentDashboardPage() {
   return (
     <main className="min-h-screen" style={{ backgroundColor: "var(--color-background)" }}>
       {/* ────── Sticky Institutional Topbar ────── */}
-      <header className="sticky top-0 z-30 border-b border-[#F0DCE5] bg-[#FFFFFF]/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-8">
+      <header className="sticky top-0 z-30 border-b border-[#353535] bg-[#121212]/90 backdrop-blur-md">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-8">
           <Link href="/student/dashboard" className="flex items-center gap-3 group">
-            <span
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-lg font-bold text-white shadow-xs"
-              style={{ background: "var(--primary-gradient)" }}
-            >
-              ⬡
+            <CredLabLogo size="sm" showWordmark={true} />
+            <span className="hidden sm:inline-block text-[11px] font-mono font-semibold uppercase tracking-wider text-[#A5A29C] border-l border-[#353535] pl-3">
+              Student Workspace
             </span>
-            <div>
-              <p className="text-sm font-bold tracking-tight text-[#3F1024]">LabOS</p>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-[#BE5678]">
-                Student Laboratory Workspace
-              </p>
-            </div>
           </Link>
 
           <div className="flex items-center gap-3">
-            <div className="hidden items-center gap-2 rounded-full px-3 py-1 text-xs font-bold sm:flex badge-primary">
-              <span className="h-2 w-2 rounded-full bg-[#9F1239]" />
+            <div className="hidden items-center gap-2 rounded-full px-3 py-1 text-xs font-mono font-bold sm:flex badge-primary">
+              <span className="h-2 w-2 rounded-full bg-[#FF6B2C]" />
               <span>{user.enrollment_number || "Student"}</span>
             </div>
 
@@ -709,26 +703,27 @@ export default function StudentDashboardPage() {
 
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-8 sm:py-8">
         {/* ────── Hero Banner ────── */}
-        <section className="lux-card p-6 sm:p-8 bg-gradient-to-r from-[#FFFFFF] via-[#FFF7FA] to-[#FBEAF0] border border-[#F0DCE5]">
-          <div className="flex flex-wrap items-center justify-between gap-4">
+        <section className="lux-card relative overflow-hidden p-6 sm:p-8 bg-gradient-to-r from-[#1B1B1B] via-[#1E1E1E] to-[#242424] border border-[#353535] shadow-lg">
+          <DashboardAmbientGrid />
+          <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#F0DCE5] bg-[#FFFFFF] px-3 py-1 text-[11px] font-bold text-[#9F1239]">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#FF6B2C]/25 bg-[#FF6B2C]/10 px-3 py-1 text-[11px] font-bold text-[#FF8A3D]">
                 Academic Session {user.academic_year || "2026-2027"}
               </div>
-              <h1 className="mt-2.5 text-2xl font-extrabold tracking-tight text-[#3F1024] sm:text-3xl">
+              <h1 className="mt-2.5 text-2xl font-extrabold tracking-tight text-[#F7F4EF] sm:text-3xl">
                 Welcome back, {user.name}
               </h1>
-              <p className="mt-1 text-xs sm:text-sm text-[#806777]">
+              <p className="mt-1 text-xs sm:text-sm text-[#A5A29C]">
                 Continuous programming practicals, automated sandbox evaluations, and milestone
                 diplomas.
               </p>
             </div>
 
             <div className="flex flex-wrap gap-2 text-xs">
-              <span className="rounded-xl px-3 py-2 font-bold bg-[#FFFFFF] border border-[#F0DCE5] text-[#3F1024]">
+              <span className="rounded-xl px-3 py-2 font-bold bg-[#161616] border border-[#353535] text-[#F7F4EF]">
                 {user.academic_course || "Course Not Assigned"}
               </span>
-              <span className="rounded-xl px-3 py-2 font-bold bg-[#FFFFFF] border border-[#F0DCE5] text-[#3F1024]">
+              <span className="rounded-xl px-3 py-2 font-bold bg-[#161616] border border-[#353535] text-[#F7F4EF]">
                 {user.year_of_study || "1st Year"} · {user.semester || "Semester 1"}
               </span>
             </div>
@@ -737,7 +732,7 @@ export default function StudentDashboardPage() {
 
         {/* ────── Navigation Tabs ────── */}
         <nav
-          className="mt-6 flex gap-1.5 overflow-x-auto rounded-2xl p-1.5 bg-[#FFFFFF] border border-[#F0DCE5]"
+          className="mt-6 flex gap-1.5 overflow-x-auto rounded-2xl p-1.5 bg-[#FFFCF6] dark:bg-[#151515] border border-[#E4DDD2] dark:border-[#2D2D2D]"
           aria-label="Student Navigation"
         >
           {tabs.map((item) => (
@@ -752,7 +747,7 @@ export default function StudentDashboardPage() {
               className={`shrink-0 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
                 tab === item
                   ? "text-white shadow-sm"
-                  : "text-[#806777] hover:bg-[#FBEAF0] hover:text-[#9F1239]"
+                  : "text-[#706C65] dark:text-[#A5A29C] hover:bg-[#EEE8DE]/60 dark:hover:bg-[#202020] hover:text-[#D94F16] dark:hover:text-[#FF6B2C]"
               }`}
               style={tab === item ? { background: "var(--primary-gradient)" } : undefined}
             >
@@ -776,24 +771,24 @@ export default function StudentDashboardPage() {
             {/* KPI Cards */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[
-                { label: "Enrolled Courses", value: courses.length, icon: "📚", color: "text-[#9F1239]" },
-                { label: "Available Labs", value: allLabs.length, icon: "🔬", color: "text-[#BE5678]" },
+                { label: "Enrolled Courses", value: courses.length, icon: "📚", color: "text-[#D94F16] dark:text-[#FF6B2C]" },
+                { label: "Available Labs", value: allLabs.length, icon: "🔬", color: "text-[#D94F16] dark:text-[#FFB547]" },
                 {
                   label: "Completed Practicals",
                   value: `${completedCount} / ${allPracticals.length || 0}`,
                   icon: "✓",
-                  color: "text-emerald-700",
+                  color: "text-emerald-700 dark:text-emerald-400",
                 },
                 {
                   label: "Passed Submissions",
                   value: acceptedSubmissions.length,
                   icon: "🏆",
-                  color: "text-amber-700",
+                  color: "text-amber-700 dark:text-amber-400",
                 },
               ].map((card) => (
-                <div key={card.label} className="lux-card p-5 card-hover">
+                <div key={card.label} className="lux-card p-5 card-hover border border-[#E4DDD2] dark:border-[#2D2D2D]">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-bold uppercase tracking-wider text-[#806777]">
+                    <p className="text-xs font-bold uppercase tracking-wider text-[#706C65] dark:text-[#A5A29C]">
                       {card.label}
                     </p>
                     <span className="text-xl">{card.icon}</span>
@@ -804,11 +799,11 @@ export default function StudentDashboardPage() {
             </div>
 
             {/* Enrolled Labs Grid */}
-            <section className="lux-card p-6">
+            <section className="lux-card p-6 border border-[#E4DDD2] dark:border-[#2D2D2D]">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-bold text-[#3F1024]">Your Enrolled Laboratories</h2>
-                  <p className="mt-0.5 text-xs text-[#806777]">
+                  <h2 className="text-lg font-bold text-[#191919] dark:text-[#F7F4EF]">Your Enrolled Laboratories</h2>
+                  <p className="mt-0.5 text-xs text-[#706C65] dark:text-[#A5A29C]">
                     Practicals assigned according to your academic program and semester.
                   </p>
                 </div>
@@ -833,24 +828,24 @@ export default function StudentDashboardPage() {
                         selectLab(lab.id);
                         setTab("My Labs");
                       }}
-                      className="lux-card p-5 text-left transition-all card-hover bg-[#FFFFFF]"
+                      className="lux-card p-5 text-left transition-all card-hover border border-[#E4DDD2] dark:border-[#2D2D2D] bg-[#FFFCF6] dark:bg-[#1B1B1B]"
                     >
                       <div className="flex items-center justify-between">
                         <span className="badge-primary px-2.5 py-0.5 text-[10px] font-bold rounded-md">
                           {lab.program}
                         </span>
-                        <span className="text-xs font-semibold text-[#806777]">
+                        <span className="text-xs font-semibold text-[#706C65] dark:text-[#A5A29C]">
                           {lab.practical_count} Practicals
                         </span>
                       </div>
-                      <h3 className="mt-3 font-bold text-[#3F1024]">{lab.title}</h3>
-                      <p className="mt-1 text-xs text-[#806777]">{lab.courseName}</p>
+                      <h3 className="mt-3 font-bold text-[#191919] dark:text-[#F7F4EF]">{lab.title}</h3>
+                      <p className="mt-1 text-xs text-[#706C65] dark:text-[#A5A29C]">{lab.courseName}</p>
                     </button>
                   ))}
                 </div>
               ) : (
                 <div className="mt-6 text-center py-10">
-                  <p className="text-sm font-semibold text-[#806777]">
+                  <p className="text-sm font-semibold text-[#706C65] dark:text-[#A5A29C]">
                     No published laboratories match your academic program yet.
                   </p>
                 </div>
@@ -865,7 +860,7 @@ export default function StudentDashboardPage() {
             {/* Lab Switcher Bar */}
             <div className="flex flex-wrap items-center justify-between gap-3 lux-card p-4">
               <div className="flex items-center gap-3 overflow-x-auto">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#806777]">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#706C65] dark:text-[#A5A29C]">
                   Active Lab:
                 </span>
                 {allLabs.map((l) => (
@@ -875,7 +870,7 @@ export default function StudentDashboardPage() {
                     className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all ${
                       selectedLab === l.id
                         ? "text-white shadow-xs"
-                        : "bg-[#FFF7FA] text-[#3F1024] hover:bg-[#FBEAF0] border border-[#F0DCE5]"
+                        : "bg-[#1B1B1B] text-[#F7F4EF] hover:border-[#FF6B2C]/50 border border-[#353535]"
                     }`}
                     style={selectedLab === l.id ? { background: "var(--primary-gradient)" } : undefined}
                   >
@@ -887,7 +882,7 @@ export default function StudentDashboardPage() {
               {/* Practicals sequence badges */}
               {selectedLab && practicalsByLab[selectedLab] && (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-[#806777]">Sequential Progress:</span>
+                  <span className="text-xs font-semibold text-[#A5A29C]">Sequential Progress:</span>
                   <div className="flex gap-1.5">
                     {practicalsByLab[selectedLab].map((p) => (
                       <button
@@ -895,12 +890,12 @@ export default function StudentDashboardPage() {
                         onClick={() => selectPractical(p)}
                         className={`flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold transition-all ${
                           selectedPractical?.id === p.id
-                            ? "bg-[#9F1239] text-white ring-2 ring-[#BE5678]"
+                            ? "bg-[#FF6B2C] text-white ring-2 ring-[#FF6B2C]/40 shadow-xs"
                             : p.status === "COMPLETED"
-                            ? "bg-[#ECFDF5] text-emerald-800 border border-[#A7F3D0]"
+                            ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
                             : p.is_unlocked
-                            ? "bg-[#FFF7FA] text-[#3F1024] border border-[#F0DCE5]"
-                            : "bg-slate-100 text-slate-400 opacity-60 cursor-not-allowed"
+                            ? "bg-[#1B1B1B] text-[#F7F4EF] border border-[#353535] hover:border-[#FF6B2C]"
+                            : "bg-[#151515] text-[#77736D] opacity-60 cursor-not-allowed border border-[#292929]"
                         }`}
                         title={`Practical #${p.sequence_number}: ${p.effective_title}`}
                       >
@@ -916,10 +911,10 @@ export default function StudentDashboardPage() {
             <div className="grid gap-6 lg:grid-cols-[1.05fr_1.35fr]">
               {/* Left Column: Problem Statement & Test Cases */}
               <div className="space-y-4">
-                <div className="lux-card p-6">
+                <div className="lux-card p-6 border border-[#353535] bg-[#1B1B1B]">
                   {questionLoading ? (
-                    <div className="flex h-64 flex-col items-center justify-center gap-2 text-xs text-[#806777]">
-                      <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#9F1239] border-t-transparent" />
+                    <div className="flex h-64 flex-col items-center justify-center gap-2 text-xs text-[#A5A29C]">
+                      <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#FF6B2C] border-t-transparent" />
                       <span>Loading problem definition...</span>
                     </div>
                   ) : questionError ? (
@@ -931,23 +926,23 @@ export default function StudentDashboardPage() {
                           <span className="badge-primary px-2.5 py-0.5 text-[10px] font-bold rounded-md">
                             Practical #{selectedPractical?.sequence_number || 1}
                           </span>
-                          <span className="text-xs font-semibold text-[#806777]">
+                          <span className="text-xs font-semibold text-[#A5A29C]">
                             Allowed: {question.allowed_languages?.join(", ") || "All"}
                           </span>
                         </div>
-                        <h2 className="mt-2 text-xl font-extrabold text-[#3F1024]">{question.title}</h2>
+                        <h2 className="mt-2 text-xl font-extrabold text-[#F7F4EF]">{question.title}</h2>
                       </div>
 
-                      <div className="prose max-w-none text-xs leading-relaxed text-[#3F1024] whitespace-pre-line">
+                      <div className="prose max-w-none text-xs leading-relaxed text-[#C2BDB5] whitespace-pre-line">
                         {question.description}
                       </div>
 
                       {question.input_format && (
                         <div>
-                          <h3 className="text-xs font-bold uppercase tracking-wider text-[#BE5678]">
+                          <h3 className="text-xs font-bold uppercase tracking-wider text-[#FF8A3D]">
                             Input Format
                           </h3>
-                          <p className="mt-1 text-xs text-[#806777] bg-[#FFF7FA] p-3 rounded-xl border border-[#F0DCE5]">
+                          <p className="mt-1 text-xs text-[#C2BDB5] bg-[#161616] p-3 rounded-xl border border-[#353535]">
                             {question.input_format}
                           </p>
                         </div>
@@ -955,10 +950,10 @@ export default function StudentDashboardPage() {
 
                       {question.output_format && (
                         <div>
-                          <h3 className="text-xs font-bold uppercase tracking-wider text-[#BE5678]">
+                          <h3 className="text-xs font-bold uppercase tracking-wider text-[#FF8A3D]">
                             Output Format
                           </h3>
-                          <p className="mt-1 text-xs text-[#806777] bg-[#FFF7FA] p-3 rounded-xl border border-[#F0DCE5]">
+                          <p className="mt-1 text-xs text-[#C2BDB5] bg-[#161616] p-3 rounded-xl border border-[#353535]">
                             {question.output_format}
                           </p>
                         </div>
@@ -966,10 +961,10 @@ export default function StudentDashboardPage() {
 
                       {question.constraints && (
                         <div>
-                          <h3 className="text-xs font-bold uppercase tracking-wider text-[#BE5678]">
+                          <h3 className="text-xs font-bold uppercase tracking-wider text-[#FF8A3D]">
                             Constraints
                           </h3>
-                          <pre className="mt-1 font-mono text-xs text-[#3F1024] bg-[#FFF7FA] p-3 rounded-xl border border-[#F0DCE5]">
+                          <pre className="mt-1 font-mono text-xs text-[#F7F4EF] bg-[#161616] p-3 rounded-xl border border-[#353535]">
                             {question.constraints}
                           </pre>
                         </div>
@@ -977,44 +972,44 @@ export default function StudentDashboardPage() {
 
                       {question.examples && question.examples.length > 0 && (
                         <div className="space-y-3">
-                          <h3 className="text-xs font-bold uppercase tracking-wider text-[#BE5678]">
+                          <h3 className="text-xs font-bold uppercase tracking-wider text-[#FF8A3D]">
                             Sample Test Cases
                           </h3>
                           {question.examples.map((ex, i) => (
                             <div
                               key={i}
-                              className="rounded-xl border border-[#F0DCE5] bg-[#FFF7FA] p-3.5 space-y-2"
+                              className="rounded-xl border border-[#353535] bg-[#161616] p-3.5 space-y-2"
                             >
-                              <div className="flex items-center justify-between text-[11px] font-bold text-[#806777]">
+                              <div className="flex items-center justify-between text-[11px] font-bold text-[#A5A29C]">
                                 <span>Example {i + 1}</span>
                                 <button
                                   type="button"
                                   onClick={() => setStdin(ex.input)}
-                                  className="text-[10px] font-bold text-[#9F1239] hover:underline"
+                                  className="text-[10px] font-bold text-[#FF6B2C] dark:text-[#FFB547] hover:underline"
                                 >
                                   Copy to Custom Input
                                 </button>
                               </div>
                               <div className="grid grid-cols-2 gap-2 text-xs">
                                 <div>
-                                  <span className="text-[10px] uppercase font-bold text-[#806777]">
+                                  <span className="text-[10px] uppercase font-bold text-[#706C65] dark:text-[#A5A29C]">
                                     Input:
                                   </span>
-                                  <pre className="mt-0.5 rounded-lg bg-[#FFFFFF] p-2 font-mono text-[11px] text-[#3F1024] border border-[#F0DCE5]">
+                                  <pre className="mt-0.5 rounded-lg bg-[#FFFFFF] dark:bg-[#151515] p-2 font-mono text-[11px] text-[#191919] dark:text-[#F7F4EF] border border-[#E4DDD2] dark:border-[#2D2D2D]">
                                     {ex.input}
                                   </pre>
                                 </div>
                                 <div>
-                                  <span className="text-[10px] uppercase font-bold text-[#806777]">
+                                  <span className="text-[10px] uppercase font-bold text-[#706C65] dark:text-[#A5A29C]">
                                     Expected Output:
                                   </span>
-                                  <pre className="mt-0.5 rounded-lg bg-[#FFFFFF] p-2 font-mono text-[11px] text-[#3F1024] border border-[#F0DCE5]">
+                                  <pre className="mt-0.5 rounded-lg bg-[#FFFFFF] dark:bg-[#151515] p-2 font-mono text-[11px] text-[#191919] dark:text-[#F7F4EF] border border-[#E4DDD2] dark:border-[#2D2D2D]">
                                     {ex.output}
                                   </pre>
                                 </div>
                               </div>
                               {ex.explanation && (
-                                <p className="text-[11px] text-[#806777]">
+                                <p className="text-[11px] text-[#706C65] dark:text-[#A5A29C]">
                                   <span className="font-bold">Explanation:</span> {ex.explanation}
                                 </p>
                               )}
@@ -1024,7 +1019,7 @@ export default function StudentDashboardPage() {
                       )}
                     </div>
                   ) : (
-                    <div className="text-center py-12 text-xs text-[#806777]">
+                    <div className="text-center py-12 text-xs text-[#706C65] dark:text-[#A5A29C]">
                       Select a practical from the top bar to inspect problem specifications.
                     </div>
                   )}
@@ -1033,14 +1028,14 @@ export default function StudentDashboardPage() {
 
               {/* Right Column: Code Editor & Execution Terminal */}
               <div className="space-y-4">
-                <div className="lux-card overflow-hidden border border-[#F0DCE5]">
+                <div className="lux-card overflow-hidden border border-[#353535] bg-[#1B1B1B]">
                   {/* Editor Header Bar */}
-                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#F0DCE5] bg-[#FFF7FA] px-4 py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#353535] bg-[#161616] px-4 py-3">
                     <div className="flex items-center gap-2">
                       <select
                         value={language}
                         onChange={(e) => handleLanguageChange(e.target.value)}
-                        className="rounded-lg border border-[#F0DCE5] bg-[#FFFFFF] px-3 py-1.5 text-xs font-bold text-[#3F1024] outline-none"
+                        className="rounded-lg border border-[#353535] bg-[#121212] px-3 py-1.5 text-xs font-bold text-[#F7F4EF] outline-none"
                       >
                         {DEFAULT_LANGUAGES.map((l) => (
                           <option key={l.value} value={l.value}>
@@ -1052,7 +1047,7 @@ export default function StudentDashboardPage() {
                       <button
                         type="button"
                         onClick={resetCode}
-                        className="rounded-lg px-2.5 py-1.5 text-xs font-bold text-[#806777] hover:bg-[#FBEAF0] hover:text-[#9F1239] transition-colors"
+                        className="rounded-lg px-2.5 py-1.5 text-xs font-bold text-[#A5A29C] hover:bg-[#202020] hover:text-[#FF6B2C] transition-colors"
                         title="Reset code template"
                       >
                         Reset
@@ -1061,7 +1056,7 @@ export default function StudentDashboardPage() {
                       <button
                         type="button"
                         onClick={() => setUseFallbackEditor((v) => !v)}
-                        className="text-[11px] font-semibold text-[#806777] hover:text-[#9F1239] transition-colors underline ml-1"
+                        className="text-[11px] font-semibold text-[#A5A29C] hover:text-[#FF6B2C] transition-colors underline ml-1"
                       >
                         {useFallbackEditor ? "Use Monaco" : "Plain Editor"}
                       </button>
@@ -1090,7 +1085,7 @@ export default function StudentDashboardPage() {
                   <div className="relative min-h-[460px] bg-[#1e1e1e]">
                     {pasteBlocked && (
                       <div className="absolute top-3 right-3 z-50 flex items-center gap-2 rounded-xl bg-[#BE123C] border border-[#FDA4AF] px-4 py-2.5 text-xs font-bold text-white shadow-2xl backdrop-blur-md animate-fade-in">
-                        <span className="text-base">??</span>
+                        <span className="text-base">⚠️</span>
                         <span>Paste disabled: Code pasting is restricted in this assessment environment. Please type your code manually.</span>
                       </div>
                     )}
@@ -1166,8 +1161,8 @@ export default function StudentDashboardPage() {
                   </div>
 
                   {/* Stdin Drawer */}
-                  <div className="border-t border-[#F0DCE5] bg-[#FFFFFF] p-3">
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-[#806777]">
+                  <div className="border-t border-[#353535] bg-[#121212] p-3">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-[#A5A29C]">
                       Custom Standard Input (stdin)
                     </label>
                     <textarea
@@ -1175,7 +1170,7 @@ export default function StudentDashboardPage() {
                       value={stdin}
                       onChange={(e) => setStdin(e.target.value)}
                       placeholder="Optional inputs passed to program stdin when clicking 'Run Code'..."
-                      className="mt-1 w-full rounded-lg border border-[#F0DCE5] bg-[#FFF7FA] p-2 font-mono text-xs text-[#3F1024] outline-none"
+                      className="mt-1 w-full rounded-lg border border-[#353535] bg-[#161616] p-2 font-mono text-xs text-[#F7F4EF] placeholder:text-[#77736D] outline-none"
                     />
                   </div>
                 </div>
@@ -1185,14 +1180,14 @@ export default function StudentDashboardPage() {
                   <div
                     className={`lux-card p-4 animate-fade-in border ${
                       consoleResult.tone === "ok"
-                        ? "border-[#A7F3D0] bg-[#ECFDF5]"
-                        : "border-[#FECACA] bg-[#FEF2F2]"
+                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                        : "border-rose-500/30 bg-rose-500/10 text-rose-300"
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <span
                         className={`text-xs font-bold uppercase tracking-wider ${
-                          consoleResult.tone === "ok" ? "text-emerald-800" : "text-rose-900"
+                          consoleResult.tone === "ok" ? "text-emerald-300" : "text-rose-300"
                         }`}
                       >
                         {consoleResult.title}
@@ -1201,7 +1196,7 @@ export default function StudentDashboardPage() {
                         <button
                           onClick={requestAiFeedback}
                           disabled={feedbackBusy}
-                          className="text-[11px] font-bold text-[#9F1239] underline hover:text-[#BE5678]"
+                          className="text-[11px] font-bold text-[#FF8A3D] underline hover:text-[#FF6B2C]"
                         >
                           {feedbackBusy ? "Analyzing..." : "Get AI Review 💡"}
                         </button>
@@ -1209,16 +1204,16 @@ export default function StudentDashboardPage() {
                     </div>
                     <pre
                       className={`mt-2 font-mono text-xs whitespace-pre-wrap ${
-                        consoleResult.tone === "ok" ? "text-emerald-950" : "text-rose-950"
+                        consoleResult.tone === "ok" ? "text-emerald-200" : "text-rose-200"
                       }`}
                     >
                       {consoleResult.body}
                     </pre>
 
                     {aiFeedback && (
-                      <div className="mt-3 rounded-lg border border-[#F0DCE5] bg-[#FFFFFF] p-3 text-xs text-[#3F1024]">
-                        <span className="font-bold text-[#9F1239]">AI Assistant Advice:</span>
-                        <p className="mt-1 whitespace-pre-wrap">{aiFeedback}</p>
+                      <div className="mt-3 rounded-lg border border-[#353535] bg-[#161616] p-3 text-xs text-[#F7F4EF]">
+                        <span className="font-bold text-[#FF8A3D]">AI Assistant Advice:</span>
+                        <p className="mt-1 whitespace-pre-wrap text-[#C2BDB5]">{aiFeedback}</p>
                       </div>
                     )}
                   </div>
@@ -1231,9 +1226,9 @@ export default function StudentDashboardPage() {
         {/* ───────────────── TAB: SUBMISSIONS ───────────────── */}
         {tab === "Submissions" && (
           <div className="mt-6 space-y-6 animate-fade-in">
-            <div className="lux-card p-6">
-              <h2 className="text-lg font-bold text-[#3F1024]">Submission History</h2>
-              <p className="mt-0.5 text-xs text-[#806777]">
+            <div className="lux-card p-6 border border-[#353535] bg-[#1B1B1B]">
+              <h2 className="text-lg font-bold text-[#F7F4EF]">Submission History</h2>
+              <p className="mt-0.5 text-xs text-[#A5A29C]">
                 Complete audit log of all automated sandbox test evaluations.
               </p>
 
@@ -1254,8 +1249,8 @@ export default function StudentDashboardPage() {
                     <tbody>
                       {submissions.map((sub) => (
                         <tr key={sub.id}>
-                          <td className="font-mono text-xs font-bold text-[#806777]">#{sub.id}</td>
-                          <td className="font-bold text-[#3F1024]">
+                          <td className="font-mono text-xs font-bold text-[#706C65] dark:text-[#A5A29C]">#{sub.id}</td>
+                          <td className="font-bold text-[#191919] dark:text-[#F7F4EF]">
                             Practical #{sub.practical_id ?? sub.question_id}
                           </td>
                           <td className="font-mono text-xs uppercase">{sub.language}</td>
@@ -1270,11 +1265,11 @@ export default function StudentDashboardPage() {
                               {sub.status}
                             </span>
                           </td>
-                          <td className="text-xs font-semibold text-[#806777]">
+                          <td className="text-xs font-semibold text-[#706C65] dark:text-[#A5A29C]">
                             {sub.passed_test_cases} / {sub.total_test_cases}
                           </td>
-                          <td className="font-bold text-[#3F1024]">{sub.score}%</td>
-                          <td className="text-xs text-[#806777]">
+                          <td className="font-bold text-[#191919] dark:text-[#F7F4EF]">{sub.score}%</td>
+                          <td className="text-xs text-[#706C65] dark:text-[#A5A29C]">
                             {new Date(sub.created_at).toLocaleString()}
                           </td>
                         </tr>
@@ -1283,7 +1278,7 @@ export default function StudentDashboardPage() {
                   </table>
                 </div>
               ) : (
-                <div className="mt-6 text-center py-10 text-xs text-[#806777]">
+                <div className="mt-6 text-center py-10 text-xs text-[#706C65] dark:text-[#A5A29C]">
                   No code submissions recorded yet. Open a lab practical and submit your solution.
                 </div>
               )}
@@ -1296,17 +1291,17 @@ export default function StudentDashboardPage() {
           <div className="mt-6 space-y-6 animate-fade-in">
             <div className="grid gap-6 md:grid-cols-2">
               <div className="lux-card p-6">
-                <h2 className="text-base font-bold text-[#3F1024]">Laboratory Practical Completion</h2>
+                <h2 className="text-base font-bold text-[#191919] dark:text-[#F7F4EF]">Laboratory Practical Completion</h2>
                 <div className="mt-4 flex items-center justify-between">
-                  <span className="text-xs font-semibold text-[#806777]">Overall Curricular Progress</span>
-                  <span className="text-xs font-extrabold text-[#9F1239]">
+                  <span className="text-xs font-semibold text-[#706C65] dark:text-[#A5A29C]">Overall Curricular Progress</span>
+                  <span className="text-xs font-extrabold text-[#FF6B2C] dark:text-[#FFB547]">
                     {allPracticals.length
                       ? Math.round((completedCount / allPracticals.length) * 100)
                       : 0}
                     %
                   </span>
                 </div>
-                <div className="mt-2 h-2.5 w-full rounded-full bg-[#FFF7FA] border border-[#F0DCE5] overflow-hidden">
+                <div className="mt-2 h-2.5 w-full rounded-full bg-[#F3EFEA] dark:bg-[#252525] border border-[#E4DDD2] dark:border-[#2D2D2D] overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all duration-500"
                     style={{
@@ -1321,40 +1316,40 @@ export default function StudentDashboardPage() {
                 </div>
 
                 <div className="mt-6 grid grid-cols-2 gap-4 text-center">
-                  <div className="p-4 rounded-xl bg-[#FFF7FA] border border-[#F0DCE5]">
-                    <p className="text-2xl font-extrabold text-[#9F1239]">{completedCount}</p>
-                    <p className="text-xs font-bold text-[#806777]">Practicals Completed</p>
+                  <div className="p-4 rounded-xl bg-[#FFFCF6] dark:bg-[#1B1B1B] border border-[#E4DDD2] dark:border-[#2D2D2D]">
+                    <p className="text-2xl font-extrabold text-[#FF6B2C] dark:text-[#FFB547]">{completedCount}</p>
+                    <p className="text-xs font-bold text-[#706C65] dark:text-[#A5A29C]">Practicals Completed</p>
                   </div>
-                  <div className="p-4 rounded-xl bg-[#FFF7FA] border border-[#F0DCE5]">
-                    <p className="text-2xl font-extrabold text-[#BE5678]">
+                  <div className="p-4 rounded-xl bg-[#FFFCF6] dark:bg-[#1B1B1B] border border-[#E4DDD2] dark:border-[#2D2D2D]">
+                    <p className="text-2xl font-extrabold text-[#E88A24] dark:text-[#FFB547]">
                       {(allPracticals.length || 0) - completedCount}
                     </p>
-                    <p className="text-xs font-bold text-[#806777]">Practicals Remaining</p>
+                    <p className="text-xs font-bold text-[#706C65] dark:text-[#A5A29C]">Practicals Remaining</p>
                   </div>
                 </div>
               </div>
 
               <div className="lux-card p-6">
-                <h2 className="text-base font-bold text-[#3F1024]">Submissions Breakdown</h2>
+                <h2 className="text-base font-bold text-[#191919] dark:text-[#F7F4EF]">Submissions Breakdown</h2>
                 <div className="mt-4 space-y-3">
                   {[
-                    { label: "Total Submissions", count: submissions.length, color: "text-[#3F1024]" },
+                    { label: "Total Submissions", count: submissions.length, color: "text-[#191919] dark:text-[#F7F4EF] font-bold" },
                     {
                       label: "Accepted (100% Score)",
                       count: acceptedSubmissions.length,
-                      color: "text-emerald-700 font-bold",
+                      color: "text-emerald-600 dark:text-emerald-400 font-bold",
                     },
                     {
                       label: "Failed or Partial Attempts",
                       count: submissions.length - acceptedSubmissions.length,
-                      color: "text-rose-700 font-bold",
+                      color: "text-rose-600 dark:text-rose-400 font-bold",
                     },
                   ].map((row) => (
                     <div
                       key={row.label}
-                      className="flex items-center justify-between p-3 rounded-xl bg-[#FFF7FA] border border-[#F0DCE5] text-xs"
+                      className="flex items-center justify-between p-3 rounded-xl bg-[#FFFCF6] dark:bg-[#1B1B1B] border border-[#E4DDD2] dark:border-[#2D2D2D] text-xs"
                     >
-                      <span className="font-semibold text-[#806777]">{row.label}</span>
+                      <span className="font-semibold text-[#706C65] dark:text-[#A5A29C]">{row.label}</span>
                       <span className={`text-sm ${row.color}`}>{row.count}</span>
                     </div>
                   ))}
@@ -1368,11 +1363,11 @@ export default function StudentDashboardPage() {
         {tab === "Achievements" && (
           <div className="mt-6 space-y-6 animate-fade-in">
             {certRequestMessage && (
-              <div className="lux-card p-4 bg-[#FFF7FA] border border-[#BE5678]/40 flex items-center justify-between text-xs text-[#9F1239] font-bold">
+              <div className="lux-card p-4 bg-[#FF6B2C]/10 border border-[#FF6B2C]/30 flex items-center justify-between text-xs text-[#FF6B2C] dark:text-[#FFB547] font-bold">
                 <span>{certRequestMessage}</span>
                 <button
                   onClick={() => setCertRequestMessage("")}
-                  className="text-xs text-[#806777] hover:text-[#3F1024]"
+                  className="text-xs text-[#706C65] dark:text-[#A5A29C] hover:text-[#191919] dark:hover:text-[#F7F4EF]"
                 >
                   Dismiss
                 </button>
@@ -1383,8 +1378,8 @@ export default function StudentDashboardPage() {
             <div className="lux-card p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-bold text-[#3F1024]">Earned Practical Badges</h2>
-                  <p className="mt-0.5 text-xs text-[#806777]">
+                  <h2 className="text-lg font-bold text-[#191919] dark:text-[#F7F4EF]">Earned Practical Badges</h2>
+                  <p className="mt-0.5 text-xs text-[#706C65] dark:text-[#A5A29C]">
                     Automatically unlocked upon achieving 100% test evaluation score on practical challenges.
                   </p>
                 </div>
@@ -1398,19 +1393,19 @@ export default function StudentDashboardPage() {
                   {earnedBadges.map((badge) => (
                     <div
                       key={badge.id}
-                      className="lux-card p-4 border border-[#F0DCE5] bg-gradient-to-br from-[#FFFFFF] to-[#FFF7FA] flex items-start gap-3.5 hover:shadow-sm transition"
+                      className="lux-card p-4 border border-[#E4DDD2] dark:border-[#2D2D2D] bg-[#FFFCF6] dark:bg-[#1B1B1B] flex items-start gap-3.5 hover:shadow-sm transition"
                     >
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#FFF7FA] border border-[#F0DCE5] text-2xl shadow-xs">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#FFFFFF] dark:bg-[#252525] border border-[#E4DDD2] dark:border-[#2D2D2D] text-2xl shadow-xs">
                         {badge.icon || "🎖️"}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-extrabold text-xs text-[#3F1024] truncate">
+                        <h3 className="font-extrabold text-xs text-[#191919] dark:text-[#F7F4EF] truncate">
                           {badge.name}
                         </h3>
-                        <p className="mt-1 text-[11px] text-[#806777] line-clamp-2">
+                        <p className="mt-1 text-[11px] text-[#706C65] dark:text-[#A5A29C] line-clamp-2">
                           {badge.description || "Milestone awarded for flawless automated test execution."}
                         </p>
-                        <p className="mt-2 font-mono text-[10px] text-[#BE5678]">
+                        <p className="mt-2 font-mono text-[10px] text-[#FF6B2C] dark:text-[#FFB547]">
                           Unlocked: {new Date(badge.earned_at).toLocaleDateString()}
                         </p>
                       </div>
@@ -1418,7 +1413,7 @@ export default function StudentDashboardPage() {
                   ))}
                 </div>
               ) : (
-                <div className="mt-6 text-center py-8 text-xs text-[#806777] rounded-xl bg-[#FFF7FA] border border-dashed border-[#F0DCE5]">
+                <div className="mt-6 text-center py-8 text-xs text-[#706C65] dark:text-[#A5A29C] rounded-xl bg-[#FFFCF6] dark:bg-[#1B1B1B] border border-dashed border-[#E4DDD2] dark:border-[#2D2D2D]">
                   No badges unlocked yet. Score 100% on any curriculum practical to automatically receive your milestone badge.
                 </div>
               )}
@@ -1428,8 +1423,8 @@ export default function StudentDashboardPage() {
             <div className="lux-card p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-bold text-[#3F1024]">Digital Milestone Diplomas</h2>
-                  <p className="mt-0.5 text-xs text-[#806777]">
+                  <h2 className="text-lg font-bold text-[#191919] dark:text-[#F7F4EF]">Digital Milestone Diplomas</h2>
+                  <p className="mt-0.5 text-xs text-[#706C65] dark:text-[#A5A29C]">
                     Cryptographically authenticated and signed with university Ed25519 asymmetric keys.
                   </p>
                 </div>
@@ -1443,32 +1438,32 @@ export default function StudentDashboardPage() {
                   {certificateData.certificates.map((cert) => (
                     <div
                       key={cert.id}
-                      className="lux-card p-5 border border-[#F0DCE5] bg-gradient-to-r from-[#FFFFFF] to-[#FFF7FA] flex flex-col justify-between"
+                      className="lux-card p-5 border border-[#E4DDD2] dark:border-[#2D2D2D] bg-[#FFFCF6] dark:bg-[#1B1B1B] flex flex-col justify-between"
                     >
                       <div>
                         <div className="flex items-center justify-between">
                           <span className="badge-success px-2.5 py-0.5 text-[10px] font-bold rounded-md">
                             VALID ED25519 DIPLOMA ✓
                           </span>
-                          <span className="font-mono text-[10px] text-[#806777]">
+                          <span className="font-mono text-[10px] text-[#706C65] dark:text-[#A5A29C]">
                             {new Date(cert.issued_at).toLocaleDateString()}
                           </span>
                         </div>
-                        <h3 className="mt-3 font-extrabold text-[#3F1024]">
+                        <h3 className="mt-3 font-extrabold text-[#191919] dark:text-[#F7F4EF]">
                           {cert.lab_title || "Academic Course Completion"}
                         </h3>
-                        <p className="mt-1 text-xs text-[#806777]">
+                        <p className="mt-1 text-xs text-[#706C65] dark:text-[#A5A29C]">
                           {cert.practical_title || "All Curriculum Requirements Satisfied"}
                         </p>
-                        <p className="mt-2 font-mono text-[10px] text-[#BE5678] truncate">
+                        <p className="mt-2 font-mono text-[10px] text-[#706C65] dark:text-[#A5A29C] truncate">
                           Digest: {cert.payload_digest}
                         </p>
                       </div>
 
-                      <div className="mt-5 pt-3 border-t border-[#F0DCE5]">
+                      <div className="mt-5 pt-3 border-t border-[#E4DDD2] dark:border-[#2D2D2D]">
                         <Link
                           href={`/certificates/${cert.id}`}
-                          className="inline-flex items-center gap-1.5 text-xs font-bold text-[#9F1239] hover:underline"
+                          className="inline-flex items-center gap-1.5 text-xs font-bold text-[#FF6B2C] dark:text-[#FFB547] hover:underline"
                         >
                           View Official Verifiable Diploma →
                         </Link>
@@ -1477,7 +1472,7 @@ export default function StudentDashboardPage() {
                   ))}
                 </div>
               ) : (
-                <div className="mt-6 text-center py-8 text-xs text-[#806777] rounded-xl bg-[#FFF7FA] border border-dashed border-[#F0DCE5]">
+                <div className="mt-6 text-center py-8 text-xs text-[#706C65] dark:text-[#A5A29C] rounded-xl bg-[#FFFCF6] dark:bg-[#1B1B1B] border border-dashed border-[#E4DDD2] dark:border-[#2D2D2D]">
                   No diplomas issued yet. Complete all required practicals for a subject below and request faculty verification.
                 </div>
               )}
@@ -1487,8 +1482,8 @@ export default function StudentDashboardPage() {
             <div className="lux-card p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-bold text-[#3F1024]">Curriculum Subject Progress</h2>
-                  <p className="mt-0.5 text-xs text-[#806777]">
+                  <h2 className="text-lg font-bold text-[#191919] dark:text-[#F7F4EF]">Curriculum Subject Progress</h2>
+                  <p className="mt-0.5 text-xs text-[#706C65] dark:text-[#A5A29C]">
                     Track practical completion and certificate eligibility across your active subjects.
                   </p>
                 </div>
@@ -1502,7 +1497,7 @@ export default function StudentDashboardPage() {
                   {studentProgress.map((prog) => (
                     <div
                       key={prog.course_id}
-                      className="lux-card p-5 border border-[#F0DCE5] bg-[#FFFFFF] rounded-2xl"
+                      className="lux-card p-5 border border-[#E4DDD2] dark:border-[#2D2D2D] bg-[#FFFCF6] dark:bg-[#1B1B1B] rounded-2xl"
                     >
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
@@ -1510,17 +1505,17 @@ export default function StudentDashboardPage() {
                             <span className="badge-primary px-2.5 py-0.5 text-[10px] font-bold rounded-md">
                               {prog.course_code || "COURSE"}
                             </span>
-                            <h3 className="text-sm font-extrabold text-[#3F1024]">
+                            <h3 className="text-sm font-extrabold text-[#191919] dark:text-[#F7F4EF]">
                               {prog.course_name}
                             </h3>
                           </div>
-                          <p className="mt-1 text-xs text-[#806777]">
+                          <p className="mt-1 text-xs text-[#706C65] dark:text-[#A5A29C]">
                             Completed:{" "}
-                            <span className="font-bold text-[#3F1024]">
+                            <span className="font-bold text-[#191919] dark:text-[#F7F4EF]">
                               {prog.completed_required} of {prog.total_required}
                             </span>{" "}
                             required practical challenges · Badges Earned:{" "}
-                            <span className="font-bold text-[#9F1239]">{prog.badges_earned}</span>
+                            <span className="font-bold text-[#FF6B2C] dark:text-[#FFB547]">{prog.badges_earned}</span>
                           </p>
                         </div>
 
@@ -1547,7 +1542,7 @@ export default function StudentDashboardPage() {
                             </span>
                           )}
                           {prog.certificate_status === "NOT_ELIGIBLE" && (
-                            <span className="bg-slate-100 text-slate-700 px-3 py-1 text-xs font-bold rounded-full border border-slate-200">
+                            <span className="bg-[#F3EFEA] dark:bg-[#252525] text-[#706C65] dark:text-[#A5A29C] px-3 py-1 text-xs font-bold rounded-full border border-[#E4DDD2] dark:border-[#2D2D2D]">
                               {prog.remaining_required} PRACTICAL(S) REMAINING
                             </span>
                           )}
@@ -1557,10 +1552,10 @@ export default function StudentDashboardPage() {
                       {/* Progress Bar */}
                       <div className="mt-4">
                         <div className="flex justify-between text-xs font-bold mb-1">
-                          <span className="text-[#806777]">Curriculum Completion</span>
-                          <span className="text-[#9F1239]">{prog.completion_percentage}%</span>
+                          <span className="text-[#706C65] dark:text-[#A5A29C]">Curriculum Completion</span>
+                          <span className="text-[#FF6B2C] dark:text-[#FFB547]">{prog.completion_percentage}%</span>
                         </div>
-                        <div className="h-2 w-full rounded-full bg-[#FFF7FA] border border-[#F0DCE5] overflow-hidden">
+                        <div className="h-2 w-full rounded-full bg-[#F3EFEA] dark:bg-[#252525] border border-[#E4DDD2] dark:border-[#2D2D2D] overflow-hidden">
                           <div
                             className="h-full rounded-full transition-all duration-500"
                             style={{
@@ -1573,14 +1568,14 @@ export default function StudentDashboardPage() {
 
                       {/* Action / Feedback row */}
                       {prog.certificate_status === "REJECTED" && prog.rejection_note && (
-                        <div className="mt-3 rounded-xl p-3 bg-rose-50 border border-rose-200 text-xs text-rose-900">
+                        <div className="mt-3 rounded-xl p-3 bg-rose-500/10 border border-rose-500/30 text-xs text-rose-800 dark:text-rose-300">
                           <span className="font-bold">Faculty Revision Note:</span>{" "}
                           {prog.rejection_note}
                         </div>
                       )}
 
-                      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#F0DCE5]">
-                        <p className="text-[11px] text-[#A38C9B]">
+                      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#E4DDD2] dark:border-[#2D2D2D]">
+                        <p className="text-[11px] text-[#706C65] dark:text-[#A5A29C]">
                           {prog.certificate_status === "ISSUED"
                             ? "Subject diploma cryptographically active in your records."
                             : prog.certificate_status === "ELIGIBLE"
@@ -1618,7 +1613,7 @@ export default function StudentDashboardPage() {
                   ))}
                 </div>
               ) : (
-                <div className="mt-6 text-center py-8 text-xs text-[#806777] rounded-xl bg-[#FFF7FA] border border-dashed border-[#F0DCE5]">
+                <div className="mt-6 text-center py-8 text-xs text-[#706C65] dark:text-[#A5A29C] rounded-xl bg-[#FFFCF6] dark:bg-[#1B1B1B] border border-dashed border-[#E4DDD2] dark:border-[#2D2D2D]">
                   No active enrolled subjects found for your profile. Contact your department administrator.
                 </div>
               )}
@@ -1632,8 +1627,8 @@ export default function StudentDashboardPage() {
             <div className="lux-card p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-bold text-[#3F1024]">Academic Identity & Credentials</h2>
-                  <p className="mt-0.5 text-xs text-[#806777]">
+                  <h2 className="text-lg font-bold text-[#191919] dark:text-[#F7F4EF]">Academic Identity & Credentials</h2>
+                  <p className="mt-0.5 text-xs text-[#706C65] dark:text-[#A5A29C]">
                     Manage your enrollment details, academic course assignment, and semester status.
                   </p>
                 </div>
@@ -1652,7 +1647,7 @@ export default function StudentDashboardPage() {
                   )}
 
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-[#3F1024] mb-1">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-[#191919] dark:text-[#F7F4EF] mb-1">
                       Student ID Number
                     </label>
                     <input
@@ -1667,7 +1662,7 @@ export default function StudentDashboardPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-[#3F1024] mb-1">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-[#191919] dark:text-[#F7F4EF] mb-1">
                       Academic Program
                     </label>
                     <select
@@ -1687,7 +1682,7 @@ export default function StudentDashboardPage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-[#3F1024] mb-1">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-[#191919] dark:text-[#F7F4EF] mb-1">
                         Year of Study
                       </label>
                       <select
@@ -1706,7 +1701,7 @@ export default function StudentDashboardPage() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-[#3F1024] mb-1">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-[#191919] dark:text-[#F7F4EF] mb-1">
                         Semester
                       </label>
                       <select
@@ -1753,11 +1748,11 @@ export default function StudentDashboardPage() {
                     { label: "Academic Session", value: user.academic_year },
                     { label: "Student ID", value: user.student_id_number || "Not set" },
                   ].map((x) => (
-                    <div key={x.label} className="p-4 rounded-xl bg-[#FFF7FA] border border-[#F0DCE5]">
-                      <p className="text-[11px] font-bold uppercase tracking-wider text-[#806777]">
+                    <div key={x.label} className="p-4 rounded-xl bg-[#FFFCF6] dark:bg-[#1B1B1B] border border-[#E4DDD2] dark:border-[#2D2D2D]">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-[#706C65] dark:text-[#A5A29C]">
                         {x.label}
                       </p>
-                      <p className="mt-1 text-sm font-bold text-[#3F1024]">{x.value || "Not set"}</p>
+                      <p className="mt-1 text-sm font-bold text-[#191919] dark:text-[#F7F4EF]">{x.value || "Not set"}</p>
                     </div>
                   ))}
                 </div>
@@ -1766,8 +1761,8 @@ export default function StudentDashboardPage() {
           </div>
         )}
 
-        <footer className="mt-12 text-center text-xs py-4 text-[#806777]">
-          LabOS · Cryptographically Signed University Assessments · 2026
+        <footer className="mt-12 text-center text-xs py-4 text-[#706C65] dark:text-[#A5A29C] font-mono">
+          CredLab · Cryptographically Signed University Assessments · 2026
         </footer>
       </div>
     </main>
