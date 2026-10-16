@@ -45,7 +45,7 @@ services:
         value: "false"
       # Add your deployed Vercel frontend URL to BACKEND_CORS_ORIGINS (e.g. https://credlab.vercel.app)
       - key: BACKEND_CORS_ORIGINS
-        value: "https://localhost:3000,http://localhost:3000"
+        value: "https://cred-lab-byte-sage.vercel.app,http://localhost:3000,http://127.0.0.1:3000"
       # Certificate signing settings
       - key: CERTIFICATE_ISSUER_NAME
         value: "CredLab Sentinel"
