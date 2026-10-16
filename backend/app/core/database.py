@@ -55,6 +55,11 @@ def check_database_connection() -> Dict[str, Any]:
     Executes a test query ('SELECT 1') against the database to verify connectivity.
     Returns a dictionary with status, message, and error details if any.
     """
+    db_name = engine.url.database or settings.POSTGRES_DB
+    server_host = engine.url.host or settings.POSTGRES_SERVER
+    server_port = engine.url.port or settings.POSTGRES_PORT
+    server_str = f"{server_host}:{server_port}"
+
     try:
         with engine.connect() as connection:
             result = connection.execute(text("SELECT 1"))
@@ -63,13 +68,13 @@ def check_database_connection() -> Dict[str, Any]:
                 return {
                     "connected": True,
                     "message": "Database connection established successfully.",
-                    "database": settings.POSTGRES_DB,
-                    "server": f"{settings.POSTGRES_SERVER}:{settings.POSTGRES_PORT}",
+                    "database": db_name,
+                    "server": server_str,
                 }
             return {
                 "connected": False,
                 "message": "Unexpected response from database query.",
-                "database": settings.POSTGRES_DB,
+                "database": db_name,
             }
     except SQLAlchemyError as err:
         logger.error(f"Database connection error: {err}")
@@ -78,8 +83,8 @@ def check_database_connection() -> Dict[str, Any]:
             "message": "Failed to connect to the PostgreSQL database.",
             "error_type": type(err).__name__,
             "details": str(err).splitlines()[0] if str(err) else "Unknown database error",
-            "database": settings.POSTGRES_DB,
-            "server": f"{settings.POSTGRES_SERVER}:{settings.POSTGRES_PORT}",
+            "database": db_name,
+            "server": server_str,
         }
     except Exception as exc:
         logger.error(f"Unexpected error while testing database connection: {exc}")
@@ -88,6 +93,6 @@ def check_database_connection() -> Dict[str, Any]:
             "message": "An unexpected error occurred while connecting to database.",
             "error_type": type(exc).__name__,
             "details": str(exc).splitlines()[0] if str(exc) else "Unknown error",
-            "database": settings.POSTGRES_DB,
-            "server": f"{settings.POSTGRES_SERVER}:{settings.POSTGRES_PORT}",
+            "database": db_name,
+            "server": server_str,
         }

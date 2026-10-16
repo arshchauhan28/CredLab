@@ -1056,3 +1056,33 @@ def test_database_test_endpoint_still_works(client):
 
     assert response.status_code == 200
     assert "connected" in response.json()
+
+
+def test_database_diagnostic_endpoint_requires_auth(client):
+    # Unauthenticated request must be rejected
+    response = client.get("/api/db-test/diagnostic")
+    assert response.status_code == 401
+
+    # Invalid diagnostic key must be rejected
+    response = client.get(
+        "/api/db-test/diagnostic",
+        headers={"X-Diagnostic-Key": "wrong-secret-key"},
+    )
+    assert response.status_code == 401
+
+
+def test_database_diagnostic_endpoint_succeeds_with_key(client):
+    from app.core.config import settings
+
+    response = client.get(
+        "/api/db-test/diagnostic",
+        headers={"X-Diagnostic-Key": settings.JWT_SECRET_KEY},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "connected"
+    assert "current_database" in data
+    assert "server_version" in data
+    assert "table_counts" in data
+    assert "password" not in str(data).lower()
+    assert "database_url" not in str(data).lower()
