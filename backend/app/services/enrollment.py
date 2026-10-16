@@ -35,16 +35,14 @@ def _normalized_program(value: str | None) -> str:
 
 
 def _student_matches_course(student: User, course: Course) -> bool:
-    """All four academic dimensions must match to prevent cross-course enrollment."""
+    """Program, year of study and semester must all match (academic year is ignored)."""
     return bool(
         student.academic_course
         and student.year_of_study
         and student.semester
-        and student.academic_year
         and _normalized_program(student.academic_course) == _normalized_program(course.program)
         and _normalized(student.year_of_study) == _normalized(course.year_of_study)
         and _normalized(student.semester) == _normalized(course.semester)
-        and _normalized(student.academic_year) == _normalized(course.academic_year)
     )
 
 
@@ -57,7 +55,7 @@ def auto_enroll_student_in_matching_courses(
     """Enroll a student in every active subject matching their complete profile."""
     if student.role != UserRole.STUDENT or not student.is_active:
         return []
-    if not all((student.academic_course, student.year_of_study, student.semester, student.academic_year)):
+    if not all((student.academic_course, student.year_of_study, student.semester)):
         return []
 
     active_courses = db.query(Course).filter(Course.is_active.is_(True)).all()
@@ -80,8 +78,8 @@ def auto_enroll_student_in_matching_courses(
 
 
 def auto_enroll_students_in_new_course(course: Course, db: Session) -> List[CourseEnrollment]:
-    """Immediately enroll active students whose full profile matches a new subject."""
-    if not course.academic_year or not course.semester or not course.is_active:
+    """Immediately enroll active students whose program, year and semester match a new subject."""
+    if not course.semester or not course.is_active:
         return []
 
     students = db.query(User).filter(
