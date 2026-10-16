@@ -1086,3 +1086,176 @@ def test_database_diagnostic_endpoint_succeeds_with_key(client):
     assert "table_counts" in data
     assert "password" not in str(data).lower()
     assert "database_url" not in str(data).lower()
+
+
+def test_faculty_registration_rejected_without_authorization_and_succeeds_when_authorized(client, db_session):
+    """
+    Regression test for priority bug: Faculty registration rejected when unauthorized (EMP2500045).
+    Verifies:
+    1. Unauthorized EMP2500045 is rejected with HTTP 403 'This enrollment number is not authorized for registration.'
+    2. Non-SUPER_ADMIN cannot manage authorization registry (HTTP 403).
+    3. SUPER_ADMIN can provision active faculty authorization for EMP2500045 (HTTP 201).
+    4. Faculty registration with EMP2500045 succeeds (HTTP 201) and creates PENDING user + RegistrationApproval in same transaction.
+    5. Duplicate registration with same enrollment number fails (HTTP 409).
+    6. Pending faculty cannot sign in (HTTP 403).
+    7. Administrator approves registration (HTTP 200).
+    8. Approved faculty can sign in (HTTP 200) and access protected endpoints.
+    """
+    from app.models.user import User, UserRole
+    from app.models.registration_approval import RegistrationApproval
+    from app.models.authorized_enrollment import AuthorizedEnrollment
+    from app.core.security import create_access_token, hash_password
+
+    emp_id = "EMP2500045"
+    faculty_email = "emp2500045@university.edu"
+    faculty_password = "SecureFacultyPassword123!"
+
+    # Step 1: Attempt registration without authorization record
+    reg_unauthorized = client.post(
+        "/api/auth/register/faculty",
+        json={
+            "name": "Dr. Testing Faculty",
+            "email": faculty_email,
+            "enrollment_number": emp_id,
+            "teaching_subjects": ["Data Structures", "Algorithms"],
+            "password": faculty_password,
+        },
+    )
+    assert reg_unauthorized.status_code == 403
+    assert reg_unauthorized.json()["detail"] == "This enrollment number is not authorized for registration."
+
+    # Verify no user or approval record was created
+    assert db_session.query(User).filter(User.enrollment_number == emp_id).first() is None
+    assert db_session.query(RegistrationApproval).count() == 0
+
+    # Step 2: Create a regular admin and a super admin
+    regular_admin = User(
+        name="Dean Admin",
+        email="dean.admin@uni.edu",
+        enrollment_number="EMP2500001",
+        password_hash=hash_password("AdminPass123!"),
+        role=UserRole.ADMIN,
+        admin_job_role="DEAN",
+        is_active=True,
+        approval_status="APPROVED",
+    )
+    super_admin = User(
+        name="Super Administrator",
+        email="super.admin@uni.edu",
+        enrollment_number="EMP2500002",
+        password_hash=hash_password("SuperAdminPass123!"),
+        role=UserRole.ADMIN,
+        admin_job_role="SUPER_ADMIN",
+        is_active=True,
+        approval_status="APPROVED",
+    )
+    db_session.add_all([regular_admin, super_admin])
+    db_session.commit()
+
+    regular_admin_token = create_access_token(data={"sub": str(regular_admin.id), "role": "ADMIN"})
+    super_admin_token = create_access_token(data={"sub": str(super_admin.id), "role": "ADMIN"})
+
+    # Non-SUPER_ADMIN cannot authorize enrollments
+    auth_denied = client.post(
+        "/api/authorized-enrollments",
+        headers={"Authorization": f"Bearer {regular_admin_token}"},
+        json={
+            "enrollment_number": emp_id,
+            "expected_role": "FACULTY",
+            "is_active": True,
+        },
+    )
+    assert auth_denied.status_code == 403
+
+    # Step 3: SUPER_ADMIN provisions the authorization
+    auth_created = client.post(
+        "/api/authorized-enrollments",
+        headers={"Authorization": f"Bearer {super_admin_token}"},
+        json={
+            "enrollment_number": emp_id,
+            "expected_role": "FACULTY",
+            "is_active": True,
+        },
+    )
+    assert auth_created.status_code == 201
+    auth_data = auth_created.json()
+    assert auth_data["enrollment_number"] == emp_id
+    assert auth_data["expected_role"] == "FACULTY"
+    assert auth_data["claimed_by_user_id"] is None
+
+    # Step 4: Faculty registration now succeeds
+    reg_success = client.post(
+        "/api/auth/register/faculty",
+        json={
+            "name": "Dr. Testing Faculty",
+            "email": faculty_email,
+            "enrollment_number": emp_id,
+            "teaching_subjects": ["Data Structures", "Algorithms"],
+            "password": faculty_password,
+        },
+    )
+    assert reg_success.status_code == 201
+    faculty_user_data = reg_success.json()
+    assert faculty_user_data["approval_status"] == "PENDING"
+    assert faculty_user_data["role"] == "FACULTY"
+
+    # Verify authorization record is now claimed
+    auth_record = db_session.query(AuthorizedEnrollment).filter(
+        AuthorizedEnrollment.enrollment_number == emp_id
+    ).first()
+    assert auth_record.claimed_by_user_id == faculty_user_data["id"]
+
+    # Verify registration approval record was created in the database
+    approval_record = db_session.query(RegistrationApproval).filter(
+        RegistrationApproval.applicant_id == faculty_user_data["id"]
+    ).first()
+    assert approval_record is not None
+    assert approval_record.decision == "PENDING"
+    assert approval_record.account_type == "FACULTY"
+
+    # Step 5: Duplicate registration with the claimed enrollment number fails
+    dup_reg = client.post(
+        "/api/auth/register/faculty",
+        json={
+            "name": "Duplicate Faculty",
+            "email": "other.email@uni.edu",
+            "enrollment_number": emp_id,
+            "teaching_subjects": ["Operating Systems"],
+            "password": faculty_password,
+        },
+    )
+    assert dup_reg.status_code == 409
+
+    # Step 6: Pending faculty cannot sign in
+    login_pending = client.post(
+        "/api/auth/login",
+        json={"enrollment_number": emp_id, "password": faculty_password},
+    )
+    assert login_pending.status_code == 403
+    assert "pending approval" in login_pending.json()["detail"].lower()
+
+    # Step 7: Administrator reviews and approves the registration
+    approve_response = client.post(
+        f"/api/approvals/{approval_record.id}/approve",
+        headers={"Authorization": f"Bearer {regular_admin_token}"},
+    )
+    assert approve_response.status_code == 200
+    assert approve_response.json()["decision"] == "APPROVED"
+
+    # Step 8: Approved faculty can now sign in
+    login_approved = client.post(
+        "/api/auth/login",
+        json={"enrollment_number": emp_id, "password": faculty_password},
+    )
+    assert login_approved.status_code == 200
+    faculty_token = login_approved.json()["access_token"]
+    assert faculty_token
+
+    # Step 9: Approved faculty can access their profile with valid token
+    me_response = client.get(
+        "/api/auth/me",
+        headers={"Authorization": f"Bearer {faculty_token}"},
+    )
+    assert me_response.status_code == 200
+    assert me_response.json()["enrollment_number"] == emp_id
+    assert me_response.json()["role"] == "FACULTY"

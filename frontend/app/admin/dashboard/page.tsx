@@ -1118,7 +1118,9 @@ export default function AdminDashboardPage() {
           </div>
 
           <nav aria-label="Admin navigation" className="flex-1 space-y-1 overflow-y-auto px-3 pb-4">
-            {sections.map((sec) => (
+            {sections
+              .filter((sec) => sec.name !== "Authorization" || user?.admin_job_role === "SUPER_ADMIN")
+              .map((sec) => (
               <button
                 key={sec.name}
                 type="button"
@@ -2113,11 +2115,15 @@ export default function AdminDashboardPage() {
                             setAuthorizationForm((f) => ({ ...f, admin_job_role: value }))
                           }
                           options={[
-                            { label: "University Admin", value: "UNIVERSITY_ADMIN" },
-                            { label: "Department Admin", value: "DEPARTMENT_ADMIN" },
-                            { label: "Exam Controller", value: "EXAM_CONTROLLER" },
-                            { label: "Lab Admin", value: "LAB_ADMIN" },
                             { label: "Super Admin", value: "SUPER_ADMIN" },
+                            { label: "University Admin", value: "UNIVERSITY_ADMIN" },
+                            { label: "Dean Academics", value: "DEAN_ACADEMICS" },
+                            { label: "Dean", value: "DEAN" },
+                            { label: "Deputy Dean", value: "DEPUTY_DEAN" },
+                            { label: "Head of Department", value: "HEAD_OF_DEPARTMENT" },
+                            { label: "Senior Faculty", value: "SENIOR_FACULTY" },
+                            { label: "Lab Admin", value: "LAB_ADMIN" },
+                            { label: "Administrative Member", value: "ADMINISTRATIVE_MEMBER" },
                           ]}
                         />
                       )}
@@ -2169,13 +2175,15 @@ export default function AdminDashboardPage() {
                                     className="lux-input text-xs py-1"
                                   >
                                     <option value="">Select Role</option>
-                                    <option value="UNIVERSITY_ADMIN">University Admin</option>
-                                    <option value="DEPARTMENT_ADMIN">Department Admin</option>
-                                    <option value="EXAM_CONTROLLER">Exam Controller</option>
                                     <option value="SUPER_ADMIN">Super Admin</option>
+                                    <option value="UNIVERSITY_ADMIN">University Admin</option>
+                                    <option value="DEAN_ACADEMICS">Dean Academics</option>
                                     <option value="DEAN">Dean</option>
-                                    <option value="HEAD_OF_DEPARTMENT">Head Of Department</option>
+                                    <option value="DEPUTY_DEAN">Deputy Dean</option>
+                                    <option value="HEAD_OF_DEPARTMENT">Head of Department</option>
                                     <option value="SENIOR_FACULTY">Senior Faculty</option>
+                                    <option value="LAB_ADMIN">Lab Admin</option>
+                                    <option value="ADMINISTRATIVE_MEMBER">Administrative Member</option>
                                   </select>
                                 ) : (
                                   auth.admin_job_role?.replaceAll("_", " ") || "—"

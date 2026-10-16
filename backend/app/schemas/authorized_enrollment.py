@@ -6,7 +6,11 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models.user import UserRole
-from app.schemas.user import ALL_ADMIN_JOB_ROLES, validate_enrollment_number
+from app.schemas.user import (
+    ALL_ADMIN_JOB_ROLES,
+    validate_enrollment_number,
+    validate_role_prefix,
+)
 
 
 class AuthorizedEnrollmentCreate(BaseModel):
@@ -33,6 +37,7 @@ class AuthorizedEnrollmentCreate(BaseModel):
 
     @model_validator(mode="after")
     def require_matching_admin_job_role(self):
+        validate_role_prefix(self.enrollment_number, self.expected_role)
         if self.expected_role == UserRole.ADMIN and not self.admin_job_role:
             raise ValueError("ADMIN authorizations must specify an explicit admin_job_role.")
         if self.expected_role != UserRole.ADMIN and self.admin_job_role:

@@ -125,6 +125,7 @@ def _create_account(
     year_of_study: str | None = None,
     semester: str | None = None,
     approval_status: str = "APPROVED",
+    commit: bool = True,
 ) -> User:
     """Create an account and claim its authorized enrollment number."""
     user = User(
@@ -146,8 +147,9 @@ def _create_account(
 
     authorization.claimed_by_user_id = user.id
 
-    db.commit()
-    db.refresh(user)
+    if commit:
+        db.commit()
+        db.refresh(user)
 
     return user
 
@@ -156,6 +158,7 @@ def _create_pending_approval_record(
     db: Session,
     user: User,
     account_type: str,
+    commit: bool = True,
 ) -> RegistrationApproval:
     """Create the audit/approval record for a pending faculty or admin registration."""
     record = RegistrationApproval(
@@ -164,7 +167,8 @@ def _create_pending_approval_record(
         decision="PENDING",
     )
     db.add(record)
-    db.commit()
+    if commit:
+        db.commit()
     return record
 
 
@@ -296,10 +300,14 @@ def register_faculty(
             role=UserRole.FACULTY,
             authorization=authorization,
             approval_status="PENDING",
+            commit=False,
         )
 
-        # Create pending approval audit record
-        _create_pending_approval_record(db, user, "FACULTY")
+        # Create pending approval audit record in the same transaction
+        _create_pending_approval_record(db, user, "FACULTY", commit=False)
+
+        db.commit()
+        db.refresh(user)
 
         # Teaching-subject persistence requires a dedicated relationship
         # model. Do not create course assignments from signup preferences.
@@ -368,10 +376,14 @@ def register_admin(
             authorization=authorization,
             admin_job_role=payload.admin_job_role,
             approval_status="PENDING",
+            commit=False,
         )
 
-        # Create pending approval audit record (requires SUPER_ADMIN to approve)
-        _create_pending_approval_record(db, user, "ADMIN")
+        # Create pending approval audit record (requires SUPER_ADMIN to approve) in the same transaction
+        _create_pending_approval_record(db, user, "ADMIN", commit=False)
+
+        db.commit()
+        db.refresh(user)
 
         return UserResponse.model_validate(user)
 
