@@ -1,7 +1,8 @@
 """
 Authentication Endpoints.
 
-Provides enrollment-authorized registration, secure login, current-user
+Provides open student registration, approval-gated faculty/admin
+registration, secure login, current-user
 retrieval, and student academic-profile updates.
 """
 
@@ -16,8 +17,6 @@ from app.core.security import (
     verify_password,
 )
 from app.models.user import User, UserRole
-from app.models.authorized_enrollment import AuthorizedEnrollment
-from app.models.university import Course
 from app.models.registration_approval import RegistrationApproval
 from app.schemas.user import (
     AdminRegisterRequest,
@@ -39,53 +38,6 @@ def _normalize_role(role) -> UserRole:
         return role
 
     return UserRole(str(role).upper())
-
-
-def _get_authorized_enrollment(
-    db: Session,
-    enrollment_number: str,
-    expected_role: UserRole,
-    expected_admin_job_role: str | None = None,
-) -> AuthorizedEnrollment:
-    """Validate that an enrollment number is authorized for the requested role."""
-    authorization = (
-        db.query(AuthorizedEnrollment)
-        .filter(
-            AuthorizedEnrollment.enrollment_number == enrollment_number,
-            AuthorizedEnrollment.is_active.is_(True),
-        )
-        .with_for_update()
-        .first()
-    )
-
-    if authorization is None:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="This enrollment number is not authorized for registration.",
-        )
-
-    if _normalize_role(authorization.expected_role) != expected_role:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="This enrollment number is not authorized for this account type.",
-        )
-
-    if expected_role == UserRole.ADMIN:
-        authorized_job_role = (authorization.admin_job_role or "").strip().upper()
-        requested_job_role = (expected_admin_job_role or "").strip().upper()
-        if not authorized_job_role or authorized_job_role != requested_job_role:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="This enrollment number is not authorized for the requested administrative job role. Contact a SUPER_ADMIN for provisioning.",
-            )
-
-    if authorization.claimed_by_user_id is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="This enrollment number has already been registered.",
-        )
-
-    return authorization
 
 
 def _check_duplicate_account(
@@ -119,7 +71,6 @@ def _create_account(
     enrollment_number: str,
     password: str,
     role: UserRole,
-    authorization: AuthorizedEnrollment,
     academic_course: str | None = None,
     admin_job_role: str | None = None,
     year_of_study: str | None = None,
@@ -127,7 +78,7 @@ def _create_account(
     approval_status: str = "APPROVED",
     commit: bool = True,
 ) -> User:
-    """Create an account and claim its authorized enrollment number."""
+    """Create a user account (no enrollment whitelist)."""
     user = User(
         name=name.strip(),
         email=email.strip().lower(),
@@ -145,7 +96,6 @@ def _create_account(
     db.add(user)
     db.flush()
 
-    authorization.claimed_by_user_id = user.id
 
     if commit:
         db.commit()
@@ -201,8 +151,7 @@ def register(
     payload: UserRegisterRequest,
     db: Session = Depends(get_db),
 ) -> UserResponse:
-    """Register a student using an authorized MUR enrollment number."""
-    authorization = None
+    """Self-service student registration. No whitelist and no approval needed."""
 
     try:
         _check_duplicate_account(
@@ -211,28 +160,6 @@ def register(
             payload.enrollment_number,
         )
 
-        authorization = _get_authorized_enrollment(
-            db,
-            payload.enrollment_number,
-            UserRole.STUDENT,
-        )
-
-        if authorization.course_id is not None:
-            course = (
-                db.query(Course)
-                .filter(
-                    Course.id == authorization.course_id,
-                    Course.is_active.is_(True),
-                )
-                .first()
-            )
-
-            if course is None:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="The course associated with this enrollment is unavailable.",
-                )
-
         user = _create_account(
             db,
             name=payload.name,
@@ -240,7 +167,6 @@ def register(
             enrollment_number=payload.enrollment_number,
             password=payload.password,
             role=UserRole.STUDENT,
-            authorization=authorization,
             academic_course=payload.academic_course,
             year_of_study=payload.year_of_study,
             semester=payload.semester,
@@ -273,7 +199,8 @@ def register_faculty(
     db: Session = Depends(get_db),
 ) -> UserResponse:
     """
-    Register faculty using an authorized EMP enrollment number.
+    Faculty registration request. The account is created as PENDING and
+    can only log in after any approved administrator approves it.
 
     Selected teaching subjects are preferences only. They do not grant
     course-management permissions.
@@ -285,12 +212,6 @@ def register_faculty(
             payload.enrollment_number,
         )
 
-        authorization = _get_authorized_enrollment(
-            db,
-            payload.enrollment_number,
-            UserRole.FACULTY,
-        )
-
         user = _create_account(
             db,
             name=payload.name,
@@ -298,7 +219,6 @@ def register_faculty(
             enrollment_number=payload.enrollment_number,
             password=payload.password,
             role=UserRole.FACULTY,
-            authorization=authorization,
             approval_status="PENDING",
             commit=False,
         )
@@ -341,10 +261,8 @@ def register_admin(
     db: Session = Depends(get_db),
 ) -> UserResponse:
     """
-    Register an administrator only if their enrollment number is explicitly
-    authorized as ADMIN in the database.
-
-    An EMP prefix alone never grants administrative privileges.
+    Administrator registration request. The account is created as PENDING and
+    can only log in after a SUPER_ADMIN approves it.
     """
     try:
         if payload.admin_job_role == "SUPER_ADMIN":
@@ -359,13 +277,6 @@ def register_admin(
             payload.enrollment_number,
         )
 
-        authorization = _get_authorized_enrollment(
-            db,
-            payload.enrollment_number,
-            UserRole.ADMIN,
-            expected_admin_job_role=payload.admin_job_role,
-        )
-
         user = _create_account(
             db,
             name=payload.name,
@@ -373,7 +284,6 @@ def register_admin(
             enrollment_number=payload.enrollment_number,
             password=payload.password,
             role=UserRole.ADMIN,
-            authorization=authorization,
             admin_job_role=payload.admin_job_role,
             approval_status="PENDING",
             commit=False,
