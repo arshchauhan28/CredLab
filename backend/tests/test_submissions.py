@@ -658,3 +658,178 @@ async def test_database_persistence_and_cascade(client, sample_question, student
 
     assert db_session.query(Submission).filter(Submission.id == sub_id).first() is None
     assert db_session.query(SubmissionTestResult).filter(SubmissionTestResult.submission_id == sub_id).count() == 0
+
+
+# ==============================================================================
+# 16. LeetCode-Style Workflow: History, Source Code Retrieval & Resubmission
+# ==============================================================================
+
+@pytest.mark.asyncio
+async def test_challenge_specific_submission_history_and_source_retrieval(
+    client, sample_question, student_headers, other_student_headers, monkeypatch, db_session
+):
+    """
+    Verifies:
+    1. Student can retrieve their own submission history filtered by question_id.
+    2. Submissions from other questions or students are excluded.
+    3. Results are sorted newest first.
+    4. Student can retrieve full source code and details of their own submission.
+    """
+    async def mock_execute(source_code, *args, **kwargs):
+        return {
+            "status": "Accepted",
+            "status_id": 3,
+            "stdout": "0 1\n",
+            "stderr": "",
+            "compile_output": "",
+            "time_ms": 15,
+            "memory_kb": 2500,
+        }
+
+    monkeypatch.setattr(judge0_service, "execute_code", mock_execute)
+
+    # 1. Create 2 submissions for sample_question
+    code_attempt_1 = "# Attempt 1: Brute force\nprint('0 1')"
+    code_attempt_2 = "# Attempt 2: Hash map\nprint('0 1')"
+
+    resp1 = client.post(
+        "/api/v1/submissions",
+        json={"question_id": sample_question.id, "language": "python", "source_code": code_attempt_1},
+        headers=student_headers,
+    )
+    assert resp1.status_code == 201
+    sub1_id = resp1.json()["id"]
+
+    resp2 = client.post(
+        "/api/v1/submissions",
+        json={"question_id": sample_question.id, "language": "python", "source_code": code_attempt_2},
+        headers=student_headers,
+    )
+    assert resp2.status_code == 201
+    sub2_id = resp2.json()["id"]
+
+    # 2. Query history specifically for sample_question
+    hist_resp = client.get(
+        f"/api/v1/submissions?question_id={sample_question.id}",
+        headers=student_headers,
+    )
+    assert hist_resp.status_code == 200
+    hist_data = hist_resp.json()
+    assert hist_data["total"] >= 2
+    # Verify newest first ordering
+    returned_ids = [item["id"] for item in hist_data["items"]]
+    assert returned_ids.index(sub2_id) < returned_ids.index(sub1_id)
+
+    # 3. Retrieve source code for Attempt 1
+    detail_resp = client.get(
+        f"/api/v1/submissions/{sub1_id}?question_id={sample_question.id}",
+        headers=student_headers,
+    )
+    assert detail_resp.status_code == 200
+    detail_data = detail_resp.json()
+    assert detail_data["id"] == sub1_id
+    assert detail_data["source_code"] == code_attempt_1
+
+    # 4. Challenge ID mismatch check (CASE 9)
+    wrong_q_resp = client.get(
+        f"/api/v1/submissions/{sub1_id}?question_id={sample_question.id + 999}",
+        headers=student_headers,
+    )
+    assert wrong_q_resp.status_code == 400
+    assert "does not belong to question" in wrong_q_resp.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_resubmission_creates_new_attempt_and_preserves_previous(
+    client, sample_question, student_headers, monkeypatch, db_session
+):
+    """
+    CRITICAL REQUIREMENT:
+    Verifies that editing a previous submission and submitting again creates a
+    BRAND NEW database record, independently evaluated, while keeping the
+    previous submission and its result completely intact and unchanged.
+    """
+    call_count = 0
+
+    async def mock_execute(source_code, *args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        # If code contains "correct", pass both test cases.
+        # Otherwise, pass only the first test case (tc1 weight=1.0, tc2 weight=2.0).
+        if "correct" in source_code:
+            return {
+                "status": "Accepted",
+                "status_id": 3,
+                "stdout": "0 1\n" if "2 7" in kwargs.get("stdin", "") else "1 2\n",
+                "stderr": "",
+                "compile_output": "",
+                "time_ms": 22,
+                "memory_kb": 2800,
+            }
+        else:
+            return {
+                "status": "Wrong Answer",
+                "status_id": 4,
+                "stdout": "wrong answer output",
+                "stderr": "",
+                "compile_output": "",
+                "time_ms": 30,
+                "memory_kb": 2900,
+            }
+
+    monkeypatch.setattr(judge0_service, "execute_code", mock_execute)
+
+    # 1. Student submits initial code (Submission #1)
+    code_v1 = "# Version 1: initial buggy attempt\nprint('wrong')"
+    sub1_resp = client.post(
+        "/api/v1/submissions",
+        json={"question_id": sample_question.id, "language": "python", "source_code": code_v1},
+        headers=student_headers,
+    )
+    assert sub1_resp.status_code == 201
+    sub1_data = sub1_resp.json()
+    sub1_id = sub1_data["id"]
+    assert sub1_data["status"] == "WRONG_ANSWER"
+    assert sub1_data["score"] == 0.0
+    sub1_created_at = sub1_data["created_at"]
+
+    # 2. Student loads Submission #1 code, modifies it to fix the bug, and resubmits
+    code_v2 = "# Version 2: edited copy of Submission #1 (correct!)\nprint('correct')"
+    sub2_resp = client.post(
+        "/api/v1/submissions",
+        json={"question_id": sample_question.id, "language": "python", "source_code": code_v2},
+        headers=student_headers,
+    )
+    assert sub2_resp.status_code == 201
+    sub2_data = sub2_resp.json()
+    sub2_id = sub2_data["id"]
+
+    # 3. Verify Submission #2 is a distinct record with fresh evaluation
+    assert sub2_id != sub1_id
+    assert sub2_data["source_code"] == code_v2
+    assert sub2_data["status"] == "ACCEPTED"
+    assert sub2_data["score"] == 100.0
+
+    # 4. Verify Submission #1 remains COMPLETELY UNCHANGED in the database
+    db_session.expire_all()
+    sub1_in_db = db_session.query(Submission).filter(Submission.id == sub1_id).first()
+    assert sub1_in_db is not None
+    assert sub1_in_db.source_code == code_v1
+    assert sub1_in_db.status == SubmissionStatus.WRONG_ANSWER
+    assert sub1_in_db.score == 0.0
+
+    # 5. Verify both attempts appear as distinct records in submission history
+    hist_resp = client.get(
+        f"/api/v1/submissions?question_id={sample_question.id}",
+        headers=student_headers,
+    )
+    hist_items = hist_resp.json()["items"]
+    ids_in_history = [item["id"] for item in hist_items]
+    assert sub2_id in ids_in_history
+    assert sub1_id in ids_in_history
+
+    item1 = next(item for item in hist_items if item["id"] == sub1_id)
+    item2 = next(item for item in hist_items if item["id"] == sub2_id)
+    assert item1["status"] == "WRONG_ANSWER"
+    assert item2["status"] == "ACCEPTED"
+

@@ -4,6 +4,7 @@ Provides authenticated submission ingestion, automated evaluation execution,
 paginated submission history retrieval, and granular test result viewing.
 """
 
+from datetime import datetime, timezone
 import logging
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -201,7 +202,41 @@ async def create_submission(
                         ),
                     )
 
-    # 5. Create initial Submission record in PENDING state
+    # 5. Check for accidental rapid duplicate submission (e.g. double-click within 2s with identical code)
+    recent_sub = (
+        db.query(Submission)
+        .filter(
+            Submission.user_id == current_user.id,
+            Submission.question_id == question.id,
+            Submission.practical_id == payload.practical_id,
+        )
+        .order_by(Submission.id.desc())
+        .first()
+    )
+    if (
+        recent_sub
+        and recent_sub.source_code == payload.source_code
+        and recent_sub.language == payload.language.lower()
+        and recent_sub.status not in (SubmissionStatus.PENDING, SubmissionStatus.RUNNING)
+    ):
+        created_time = recent_sub.created_at
+        if created_time is not None:
+            if created_time.tzinfo is None:
+                created_time = created_time.replace(tzinfo=timezone.utc)
+            elapsed = (datetime.now(timezone.utc) - created_time).total_seconds()
+            if 0.0 <= elapsed < 2.0:
+                final_submission = (
+                    db.query(Submission)
+                    .options(
+                        joinedload(Submission.test_results).joinedload(SubmissionTestResult.test_case)
+                    )
+                    .filter(Submission.id == recent_sub.id)
+                    .first()
+                )
+                if final_submission:
+                    return build_safe_submission_response(final_submission, include_source=True)
+
+    # 6. Create initial Submission record in PENDING state
     submission = Submission(
         user_id=current_user.id,
         question_id=question.id,
@@ -312,7 +347,7 @@ async def list_submissions(
     offset = (page - 1) * page_size
 
     submissions = (
-        query.order_by(Submission.created_at.desc())
+        query.order_by(Submission.created_at.desc(), Submission.id.desc())
         .offset(offset)
         .limit(page_size)
         .all()
@@ -331,6 +366,7 @@ async def list_submissions(
             score=s.score,
             execution_time_ms=s.execution_time_ms,
             memory_kb=s.memory_kb,
+            error_message=s.error_message,
             created_at=s.created_at,
         )
         for s in submissions
@@ -415,6 +451,7 @@ async def list_all_submissions_admin(
                 score=item.score,
                 execution_time_ms=item.execution_time_ms,
                 memory_kb=item.memory_kb,
+                error_message=item.error_message,
                 created_at=item.created_at,
             )
             for item in items
@@ -434,6 +471,8 @@ async def list_all_submissions_admin(
 )
 async def get_submission(
     submission_id: int,
+    practical_id: Optional[int] = Query(None, description="Optional practical ID to validate against"),
+    question_id: Optional[int] = Query(None, description="Optional question ID to validate against"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> SubmissionResponse:
@@ -443,6 +482,7 @@ async def get_submission(
     - Candidate can only access their own submissions.
     - Admins may inspect candidate submissions for grading audit.
     - Hidden test case inputs and expected outputs are strictly obscured.
+    - If practical_id or question_id are specified, validates that the submission matches.
     """
     submission = (
         db.query(Submission)
@@ -464,6 +504,18 @@ async def get_submission(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to view this submission.",
+        )
+
+    # Challenge validation (CASE 9)
+    if practical_id is not None and submission.practical_id != practical_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Submission with ID {submission_id} does not belong to practical {practical_id}.",
+        )
+    if question_id is not None and submission.question_id != question_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Submission with ID {submission_id} does not belong to question {question_id}.",
         )
 
     return build_safe_submission_response(submission, include_source=True)

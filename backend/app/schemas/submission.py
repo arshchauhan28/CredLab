@@ -115,6 +115,7 @@ class SubmissionListItem(BaseModel):
     score: float
     execution_time_ms: Optional[int] = None
     memory_kb: Optional[int] = None
+    error_message: Optional[str] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

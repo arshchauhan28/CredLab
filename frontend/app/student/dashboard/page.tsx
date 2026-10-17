@@ -60,6 +60,24 @@ type Question = {
   examples: { input: string; output: string; explanation?: string | null }[];
 };
 
+type SubmissionTestResult = {
+  id: number;
+  submission_id: number;
+  test_case_id?: number | null;
+  status: string;
+  passed: boolean;
+  execution_time_ms?: number | null;
+  memory_kb?: number | null;
+  is_hidden: boolean;
+  display_order: number;
+  input?: string | null;
+  expected_output?: string | null;
+  stdout?: string | null;
+  stderr?: string | null;
+  error_message?: string | null;
+  created_at: string;
+};
+
 type Submission = {
   id: number;
   question_id: number;
@@ -69,6 +87,11 @@ type Submission = {
   total_test_cases: number;
   passed_test_cases: number;
   score: number;
+  execution_time_ms?: number | null;
+  memory_kb?: number | null;
+  error_message?: string | null;
+  source_code?: string;
+  test_results?: SubmissionTestResult[];
   created_at: string;
 };
 
@@ -233,6 +256,30 @@ export default function StudentDashboardPage() {
   const [requestingCertCourseId, setRequestingCertCourseId] = useState<number | null>(null);
   const [certRequestMessage, setCertRequestMessage] = useState("");
 
+  // Challenge-specific Submission History (LeetCode-style)
+  const [problemPaneTab, setProblemPaneTab] = useState<"description" | "submissions">("description");
+  const [challengeSubmissions, setChallengeSubmissions] = useState<Submission[]>([]);
+  const [challengeSubmissionsLoading, setChallengeSubmissionsLoading] = useState(false);
+  const [challengeSubmissionsError, setChallengeSubmissionsError] = useState("");
+
+  // Loaded historical submission banner & tracking
+  const [loadedSubmissionInfo, setLoadedSubmissionInfo] = useState<{
+    id: number;
+    timestamp: string;
+    status: string;
+    score: number;
+    language: string;
+  } | null>(null);
+
+  // Submission Inspection Modal ("View Code")
+  const [viewingSubmission, setViewingSubmission] = useState<Submission | null>(null);
+  const [viewingSubmissionLoading, setViewingSubmissionLoading] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
+
+  // Unsaved changes confirmation dialog
+  const [pendingSubmissionToLoad, setPendingSubmissionToLoad] = useState<Submission | null>(null);
+  const [confirmOverwriteOpen, setConfirmOverwriteOpen] = useState(false);
+
   // Editor mode: Monaco vs Native Textarea Fallback
   const [useFallbackEditor, setUseFallbackEditor] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -260,6 +307,24 @@ export default function StudentDashboardPage() {
       setPracticalLoadStates((states) => ({ ...states, [labId]: "loaded" }));
     } catch {
       setPracticalLoadStates((states) => ({ ...states, [labId]: "error" }));
+    }
+  }, []);
+
+  const fetchChallengeSubmissions = useCallback(async (qId: number, pId?: number | null) => {
+    setChallengeSubmissionsLoading(true);
+    setChallengeSubmissionsError("");
+    try {
+      const params = new URLSearchParams();
+      params.set("question_id", String(qId));
+      if (pId) params.set("practical_id", String(pId));
+      params.set("page", "1");
+      params.set("page_size", "50");
+      const res = await api<{ items: Submission[]; total: number }>(`submissions?${params.toString()}`);
+      setChallengeSubmissions(res.items || []);
+    } catch (err) {
+      setChallengeSubmissionsError(err instanceof Error ? err.message : "Failed to load submission history.");
+    } finally {
+      setChallengeSubmissionsLoading(false);
     }
   }, []);
 
@@ -408,6 +473,8 @@ export default function StudentDashboardPage() {
     setConsoleResult(null);
     setAiFeedback("");
     setLastSubmissionId(null);
+    setLoadedSubmissionInfo(null);
+    setProblemPaneTab("description");
     try {
       if (!p.question_id) {
         throw new Error("This practical does not have an assigned question.");
@@ -419,6 +486,7 @@ export default function StudentDashboardPage() {
         );
       }
       setQuestion(q);
+      void fetchChallengeSubmissions(p.question_id, p.id);
       const validLangs = q.allowed_languages?.filter((l) =>
         DEFAULT_LANGUAGES.some((dl) => dl.value === l),
       );
@@ -590,6 +658,10 @@ export default function StudentDashboardPage() {
         void loadPracticals(selectedLab);
       }
       void refreshWorkspace();
+      if (question) {
+        void fetchChallengeSubmissions(question.id, selectedPractical.id);
+      }
+      setLoadedSubmissionInfo(null);
     } catch (cause) {
       setConsoleResult({
         title: "Submission Failed",
@@ -599,6 +671,102 @@ export default function StudentDashboardPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const hasUnsavedChanges = (targetCode?: string) => {
+    const trimmed = sourceCode.trim();
+    if (!trimmed) return false;
+    const isStarter = DEFAULT_LANGUAGES.some(
+      (l) =>
+        l.starter.trim() === trimmed ||
+        (selectedPractical && `# Solution for ${selectedPractical.effective_title}`.trim() === trimmed),
+    );
+    if (isStarter) return false;
+    if (targetCode && targetCode.trim() === trimmed) return false;
+    return true;
+  };
+
+  const loadSubmissionIntoEditor = (sub: Submission) => {
+    if (sub.source_code !== undefined && sub.source_code !== null) {
+      setSourceCode(sub.source_code);
+      if (sub.language && DEFAULT_LANGUAGES.some((l) => l.value === sub.language.toLowerCase())) {
+        setLanguage(sub.language.toLowerCase());
+      }
+      setLoadedSubmissionInfo({
+        id: sub.id,
+        timestamp: sub.created_at,
+        status: sub.status,
+        score: sub.score,
+        language: sub.language,
+      });
+      setConfirmOverwriteOpen(false);
+      setPendingSubmissionToLoad(null);
+      setViewingSubmission(null);
+    }
+  };
+
+  const handleRequestLoadSubmission = async (sub: Submission) => {
+    let targetCode = sub.source_code;
+    let fullSub = sub;
+    if (!targetCode) {
+      try {
+        fullSub = await api<Submission>(
+          `submissions/${sub.id}?question_id=${sub.question_id}${sub.practical_id ? `&practical_id=${sub.practical_id}` : ""}`,
+        );
+        targetCode = fullSub.source_code;
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "Failed to retrieve submission code.");
+        return;
+      }
+    }
+
+    if (hasUnsavedChanges(targetCode)) {
+      setPendingSubmissionToLoad(fullSub);
+      setConfirmOverwriteOpen(true);
+    } else {
+      loadSubmissionIntoEditor(fullSub);
+    }
+  };
+
+  const handleViewSubmission = async (sub: Submission) => {
+    setViewingSubmission(sub);
+    setCodeCopied(false);
+    if (!sub.source_code) {
+      setViewingSubmissionLoading(true);
+      try {
+        const full = await api<Submission>(
+          `submissions/${sub.id}?question_id=${sub.question_id}${sub.practical_id ? `&practical_id=${sub.practical_id}` : ""}`,
+        );
+        setViewingSubmission(full);
+      } catch (err) {
+        console.error("Failed to load submission details:", err);
+      } finally {
+        setViewingSubmissionLoading(false);
+      }
+    }
+  };
+
+  const handleOpenGlobalSubmissionInEditor = async (sub: Submission) => {
+    let foundLabId: number | null = null;
+    let foundPractical: Practical | null = null;
+
+    for (const [labIdStr, practicals] of Object.entries(practicalsByLab)) {
+      const match = practicals.find((p) => p.id === sub.practical_id);
+      if (match) {
+        foundLabId = Number(labIdStr);
+        foundPractical = match;
+        break;
+      }
+    }
+
+    if (foundLabId && foundPractical) {
+      setSelectedLab(foundLabId);
+      await selectPractical(foundPractical);
+    } else if (allLabs.length > 0) {
+      setSelectedLab(allLabs[0].id);
+    }
+    setTab("My Labs");
+    void handleRequestLoadSubmission(sub);
   };
 
   const requestAiFeedback = async () => {
@@ -935,118 +1103,321 @@ export default function StudentDashboardPage() {
 
             {/* Split Screen Workspace */}
             <div className="grid gap-6 lg:grid-cols-[1.05fr_1.35fr]">
-              {/* Left Column: Problem Statement & Test Cases */}
+              {/* Left Column: Problem Statement & Test Cases / Submissions */}
               <div className="space-y-4">
                 <div className="lux-card p-6 border border-[#353535] bg-[#1B1B1B]">
-                  {questionLoading ? (
-                    <div className="flex h-64 flex-col items-center justify-center gap-2 text-xs text-[#A5A29C]">
-                      <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#FF6B2C] border-t-transparent" />
-                      <span>Loading problem definition...</span>
-                    </div>
-                  ) : questionError ? (
-                    <div className="badge-danger p-4 rounded-xl text-xs">{questionError}</div>
-                  ) : question ? (
-                    <div className="space-y-5">
-                      <div>
-                        <div className="flex items-center justify-between">
-                          <span className="badge-primary px-2.5 py-0.5 text-[10px] font-bold rounded-md">
-                            Practical #{selectedPractical?.sequence_number || 1}
+                  {/* Pane Navigation Tabs */}
+                  <div className="flex items-center justify-between border-b border-[#353535] pb-3 mb-5">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setProblemPaneTab("description")}
+                        className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                          problemPaneTab === "description"
+                            ? "bg-[#252525] text-[#FF8A3D] border border-[#FF6B2C]/40 shadow-xs"
+                            : "text-[#A5A29C] hover:text-[#F7F4EF] hover:bg-[#202020]"
+                        }`}
+                      >
+                        <span>Description</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setProblemPaneTab("submissions");
+                          if (question) {
+                            void fetchChallengeSubmissions(question.id, selectedPractical?.id);
+                          }
+                        }}
+                        className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                          problemPaneTab === "submissions"
+                            ? "bg-[#252525] text-[#FF8A3D] border border-[#FF6B2C]/40 shadow-xs"
+                            : "text-[#A5A29C] hover:text-[#F7F4EF] hover:bg-[#202020]"
+                        }`}
+                      >
+                        <span>Submissions</span>
+                        {challengeSubmissions.length > 0 && (
+                          <span className="rounded-full bg-[#FF6B2C]/20 border border-[#FF6B2C]/30 px-1.5 py-0.2 text-[10px] font-mono text-[#FF8A3D]">
+                            {challengeSubmissions.length}
                           </span>
-                          <span className="text-xs font-semibold text-[#A5A29C]">
-                            Allowed: {question.allowed_languages?.join(", ") || "All"}
-                          </span>
-                        </div>
-                        <h2 className="mt-2 text-xl font-extrabold text-[#F7F4EF]">{question.title}</h2>
-                      </div>
-
-                      <div className="prose max-w-none text-xs leading-relaxed text-[#C2BDB5] whitespace-pre-line">
-                        {question.description}
-                      </div>
-
-                      {question.input_format && (
-                        <div>
-                          <h3 className="text-xs font-bold uppercase tracking-wider text-[#FF8A3D]">
-                            Input Format
-                          </h3>
-                          <p className="mt-1 text-xs text-[#C2BDB5] bg-[#161616] p-3 rounded-xl border border-[#353535]">
-                            {question.input_format}
-                          </p>
-                        </div>
-                      )}
-
-                      {question.output_format && (
-                        <div>
-                          <h3 className="text-xs font-bold uppercase tracking-wider text-[#FF8A3D]">
-                            Output Format
-                          </h3>
-                          <p className="mt-1 text-xs text-[#C2BDB5] bg-[#161616] p-3 rounded-xl border border-[#353535]">
-                            {question.output_format}
-                          </p>
-                        </div>
-                      )}
-
-                      {question.constraints && (
-                        <div>
-                          <h3 className="text-xs font-bold uppercase tracking-wider text-[#FF8A3D]">
-                            Constraints
-                          </h3>
-                          <pre className="mt-1 font-mono text-xs text-[#F7F4EF] bg-[#161616] p-3 rounded-xl border border-[#353535]">
-                            {question.constraints}
-                          </pre>
-                        </div>
-                      )}
-
-                      {question.examples && question.examples.length > 0 && (
-                        <div className="space-y-3">
-                          <h3 className="text-xs font-bold uppercase tracking-wider text-[#FF8A3D]">
-                            Sample Test Cases
-                          </h3>
-                          {question.examples.map((ex, i) => (
-                            <div
-                              key={i}
-                              className="rounded-xl border border-[#353535] bg-[#161616] p-3.5 space-y-2"
-                            >
-                              <div className="flex items-center justify-between text-[11px] font-bold text-[#A5A29C]">
-                                <span>Example {i + 1}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => setStdin(ex.input)}
-                                  className="text-[10px] font-bold text-[#FF6B2C] dark:text-[#FFB547] hover:underline"
-                                >
-                                  Copy to Custom Input
-                                </button>
-                              </div>
-                              <div className="grid grid-cols-2 gap-2 text-xs">
-                                <div>
-                                  <span className="text-[10px] uppercase font-bold text-[#706C65] dark:text-[#A5A29C]">
-                                    Input:
-                                  </span>
-                                  <pre className="mt-0.5 rounded-lg bg-[#FFFFFF] dark:bg-[#151515] p-2 font-mono text-[11px] text-[#191919] dark:text-[#F7F4EF] border border-[#E4DDD2] dark:border-[#2D2D2D]">
-                                    {ex.input}
-                                  </pre>
-                                </div>
-                                <div>
-                                  <span className="text-[10px] uppercase font-bold text-[#706C65] dark:text-[#A5A29C]">
-                                    Expected Output:
-                                  </span>
-                                  <pre className="mt-0.5 rounded-lg bg-[#FFFFFF] dark:bg-[#151515] p-2 font-mono text-[11px] text-[#191919] dark:text-[#F7F4EF] border border-[#E4DDD2] dark:border-[#2D2D2D]">
-                                    {ex.output}
-                                  </pre>
-                                </div>
-                              </div>
-                              {ex.explanation && (
-                                <p className="text-[11px] text-[#706C65] dark:text-[#A5A29C]">
-                                  <span className="font-bold">Explanation:</span> {ex.explanation}
-                                </p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                        )}
+                      </button>
                     </div>
+
+                    {problemPaneTab === "submissions" && question && (
+                      <button
+                        type="button"
+                        onClick={() => void fetchChallengeSubmissions(question.id, selectedPractical?.id)}
+                        disabled={challengeSubmissionsLoading}
+                        className="text-[11px] font-bold text-[#A5A29C] hover:text-[#FF6B2C] transition-colors flex items-center gap-1"
+                        title="Refresh submissions"
+                      >
+                        <span className={challengeSubmissionsLoading ? "animate-spin" : ""}>🔄</span>
+                        <span className="hidden sm:inline">Refresh</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {problemPaneTab === "description" ? (
+                    questionLoading ? (
+                      <div className="flex h-64 flex-col items-center justify-center gap-2 text-xs text-[#A5A29C]">
+                        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#FF6B2C] border-t-transparent" />
+                        <span>Loading problem definition...</span>
+                      </div>
+                    ) : questionError ? (
+                      <div className="badge-danger p-4 rounded-xl text-xs">{questionError}</div>
+                    ) : question ? (
+                      <div className="space-y-5">
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="badge-primary px-2.5 py-0.5 text-[10px] font-bold rounded-md">
+                              Practical #{selectedPractical?.sequence_number || 1}
+                            </span>
+                            <span className="text-xs font-semibold text-[#A5A29C]">
+                              Allowed: {question.allowed_languages?.join(", ") || "All"}
+                            </span>
+                          </div>
+                          <h2 className="mt-2 text-xl font-extrabold text-[#F7F4EF]">{question.title}</h2>
+                        </div>
+
+                        <div className="prose max-w-none text-xs leading-relaxed text-[#C2BDB5] whitespace-pre-line">
+                          {question.description}
+                        </div>
+
+                        {question.input_format && (
+                          <div>
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-[#FF8A3D]">
+                              Input Format
+                            </h3>
+                            <p className="mt-1 text-xs text-[#C2BDB5] bg-[#161616] p-3 rounded-xl border border-[#353535]">
+                              {question.input_format}
+                            </p>
+                          </div>
+                        )}
+
+                        {question.output_format && (
+                          <div>
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-[#FF8A3D]">
+                              Output Format
+                            </h3>
+                            <p className="mt-1 text-xs text-[#C2BDB5] bg-[#161616] p-3 rounded-xl border border-[#353535]">
+                              {question.output_format}
+                            </p>
+                          </div>
+                        )}
+
+                        {question.constraints && (
+                          <div>
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-[#FF8A3D]">
+                              Constraints
+                            </h3>
+                            <pre className="mt-1 font-mono text-xs text-[#F7F4EF] bg-[#161616] p-3 rounded-xl border border-[#353535]">
+                              {question.constraints}
+                            </pre>
+                          </div>
+                        )}
+
+                        {question.examples && question.examples.length > 0 && (
+                          <div className="space-y-3">
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-[#FF8A3D]">
+                              Sample Test Cases
+                            </h3>
+                            {question.examples.map((ex, i) => (
+                              <div
+                                key={i}
+                                className="rounded-xl border border-[#353535] bg-[#161616] p-3.5 space-y-2"
+                              >
+                                <div className="flex items-center justify-between text-[11px] font-bold text-[#A5A29C]">
+                                  <span>Example {i + 1}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setStdin(ex.input)}
+                                    className="text-[10px] font-bold text-[#FF6B2C] dark:text-[#FFB547] hover:underline"
+                                  >
+                                    Copy to Custom Input
+                                  </button>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                  <div>
+                                    <span className="text-[10px] uppercase font-bold text-[#706C65] dark:text-[#A5A29C]">
+                                      Input:
+                                    </span>
+                                    <pre className="mt-0.5 rounded-lg bg-[#FFFFFF] dark:bg-[#151515] p-2 font-mono text-[11px] text-[#191919] dark:text-[#F7F4EF] border border-[#E4DDD2] dark:border-[#2D2D2D]">
+                                      {ex.input}
+                                    </pre>
+                                  </div>
+                                  <div>
+                                    <span className="text-[10px] uppercase font-bold text-[#706C65] dark:text-[#A5A29C]">
+                                      Expected Output:
+                                    </span>
+                                    <pre className="mt-0.5 rounded-lg bg-[#FFFFFF] dark:bg-[#151515] p-2 font-mono text-[11px] text-[#191919] dark:text-[#F7F4EF] border border-[#E4DDD2] dark:border-[#2D2D2D]">
+                                      {ex.output}
+                                    </pre>
+                                  </div>
+                                </div>
+                                {ex.explanation && (
+                                  <p className="text-[11px] text-[#706C65] dark:text-[#A5A29C]">
+                                    <span className="font-bold">Explanation:</span> {ex.explanation}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 text-xs text-[#706C65] dark:text-[#A5A29C]">
+                        Select a practical from the top bar to inspect problem specifications.
+                      </div>
+                    )
                   ) : (
-                    <div className="text-center py-12 text-xs text-[#706C65] dark:text-[#A5A29C]">
-                      Select a practical from the top bar to inspect problem specifications.
+                    /* Submissions History Pane */
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="text-sm font-bold text-[#F7F4EF]">
+                          Submission History
+                        </h3>
+                        <p className="mt-0.5 text-[11px] text-[#A5A29C]">
+                          Past attempts for this practical. Select any attempt to view submitted code, inspect results, or load into the editor as an editable copy.
+                        </p>
+                      </div>
+
+                      {challengeSubmissionsLoading ? (
+                        <div className="flex h-48 flex-col items-center justify-center gap-2 text-xs text-[#A5A29C]">
+                          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#FF6B2C] border-t-transparent" />
+                          <span>Retrieving submission attempts...</span>
+                        </div>
+                      ) : challengeSubmissionsError ? (
+                        <div className="badge-danger p-4 rounded-xl text-xs space-y-2">
+                          <p>{challengeSubmissionsError}</p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (question) void fetchChallengeSubmissions(question.id, selectedPractical?.id);
+                            }}
+                            className="btn-secondary !py-1 !px-2.5 !text-[11px] font-bold"
+                          >
+                            Retry
+                          </button>
+                        </div>
+                      ) : challengeSubmissions.length === 0 ? (
+                        <div className="rounded-xl border border-dashed border-[#353535] bg-[#161616]/50 p-8 text-center">
+                          <span className="text-2xl">⏳</span>
+                          <h4 className="mt-2 text-xs font-bold text-[#F7F4EF]">No Submissions Yet</h4>
+                          <p className="mt-1 text-[11px] text-[#A5A29C] max-w-xs mx-auto">
+                            You have not submitted any solutions for this challenge yet. Write your code in the editor and click &ldquo;Submit Solution&rdquo; to record your first attempt.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3 max-h-[560px] overflow-y-auto pr-1">
+                          {challengeSubmissions.map((sub, idx) => {
+                            const isAccepted = sub.status === "ACCEPTED" || sub.score === 100;
+                            const isRunning = sub.status === "PENDING" || sub.status === "RUNNING";
+                            const attemptNum = challengeSubmissions.length - idx;
+                            return (
+                              <div
+                                key={sub.id}
+                                className={`rounded-xl border p-3.5 transition-all ${
+                                  loadedSubmissionInfo?.id === sub.id
+                                    ? "border-[#FF6B2C] bg-[#FF6B2C]/10 ring-1 ring-[#FF6B2C]/30"
+                                    : "border-[#353535] bg-[#161616] hover:border-[#454545]"
+                                }`}
+                              >
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="rounded-md bg-[#252525] px-2 py-0.5 font-mono text-[11px] font-bold text-[#F7F4EF] border border-[#353535]">
+                                      Attempt #{attemptNum}
+                                    </span>
+                                    <span
+                                      className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                                        isAccepted
+                                          ? "badge-success"
+                                          : isRunning
+                                          ? "badge-warning"
+                                          : "badge-danger"
+                                      }`}
+                                    >
+                                      {sub.status === "ACCEPTED"
+                                        ? "Accepted ✓"
+                                        : sub.status === "WRONG_ANSWER"
+                                        ? "Wrong Answer ✗"
+                                        : sub.status === "COMPILATION_ERROR"
+                                        ? "Compile Error ⚠"
+                                        : sub.status === "RUNTIME_ERROR"
+                                        ? "Runtime Error ⚠"
+                                        : sub.status === "TIME_LIMIT_EXCEEDED"
+                                        ? "TLE ⏱"
+                                        : sub.status}
+                                    </span>
+                                    {loadedSubmissionInfo?.id === sub.id && (
+                                      <span className="rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.2 text-[10px] font-bold">
+                                        Loaded in Editor
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <span className="text-[11px] font-mono text-[#A5A29C]">
+                                    {new Date(sub.created_at).toLocaleString([], {
+                                      month: "short",
+                                      day: "numeric",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </span>
+                                </div>
+
+                                <div className="mt-2.5 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                                  <div className="rounded-lg bg-[#121212] p-2 border border-[#252525]">
+                                    <span className="text-[10px] uppercase font-bold text-[#77736D]">Language</span>
+                                    <p className="font-mono text-[11px] font-bold text-[#F7F4EF] uppercase">{sub.language}</p>
+                                  </div>
+                                  <div className="rounded-lg bg-[#121212] p-2 border border-[#252525]">
+                                    <span className="text-[10px] uppercase font-bold text-[#77736D]">Score</span>
+                                    <p className={`font-mono text-[11px] font-bold ${isAccepted ? "text-emerald-400" : "text-amber-400"}`}>
+                                      {sub.score}%
+                                    </p>
+                                  </div>
+                                  <div className="rounded-lg bg-[#121212] p-2 border border-[#252525]">
+                                    <span className="text-[10px] uppercase font-bold text-[#77736D]">Test Cases</span>
+                                    <p className="font-mono text-[11px] text-[#C2BDB5]">
+                                      {sub.passed_test_cases} / {sub.total_test_cases}
+                                    </p>
+                                  </div>
+                                  <div className="rounded-lg bg-[#121212] p-2 border border-[#252525]">
+                                    <span className="text-[10px] uppercase font-bold text-[#77736D]">Runtime</span>
+                                    <p className="font-mono text-[11px] text-[#C2BDB5]">
+                                      {sub.execution_time_ms ? `${sub.execution_time_ms}ms` : "--"}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {sub.error_message && (
+                                  <div className="mt-2 rounded-lg bg-rose-500/10 border border-rose-500/20 p-2 text-[11px] text-rose-300 font-mono truncate">
+                                    {sub.error_message}
+                                  </div>
+                                )}
+
+                                <div className="mt-3 flex items-center justify-end gap-2 border-t border-[#252525] pt-2.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleViewSubmission(sub)}
+                                    className="btn-secondary !py-1 !px-2.5 !text-[11px] font-bold"
+                                  >
+                                    View Code
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleRequestLoadSubmission(sub)}
+                                    className="btn-primary !py-1 !px-3 !text-[11px] font-bold"
+                                  >
+                                    Open in Editor →
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1114,6 +1485,45 @@ export default function StudentDashboardPage() {
                       </button>
                     </div>
                   </div>
+
+                  {/* Historical Submission Loaded Notification Banner */}
+                  {loadedSubmissionInfo && (
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-xs text-amber-200 animate-fade-in">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">📝</span>
+                        <div>
+                          <span className="font-bold text-amber-300">
+                            Editing a copy of Submission #{loadedSubmissionInfo.id}
+                          </span>
+                          <span className="ml-2 font-mono text-[11px] text-amber-300/80">
+                            ({loadedSubmissionInfo.status} • Score: {loadedSubmissionInfo.score}%)
+                          </span>
+                          <span className="ml-2 hidden text-[11px] text-amber-200/70 md:inline">
+                            Submitting will create a <strong>NEW</strong> attempt without modifying the original.
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setLoadedSubmissionInfo(null)}
+                          className="rounded px-2 py-0.5 text-[11px] font-bold text-amber-300 hover:bg-amber-500/20 transition-colors"
+                        >
+                          Dismiss Notice
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            resetCode();
+                            setLoadedSubmissionInfo(null);
+                          }}
+                          className="rounded px-2 py-0.5 text-[11px] font-bold text-[#A5A29C] hover:text-[#F7F4EF] hover:bg-[#202020] transition-colors"
+                        >
+                          Reset to Starter
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Monaco / Textarea Code Surface with Paste Restrictions */}
                   <div className="relative min-h-[460px] bg-[#1e1e1e]">
@@ -1278,6 +1688,7 @@ export default function StudentDashboardPage() {
                         <th>Test Cases</th>
                         <th>Score</th>
                         <th>Timestamp</th>
+                        <th className="text-right">Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1305,6 +1716,16 @@ export default function StudentDashboardPage() {
                           <td className="font-bold text-[#191919] dark:text-[#F7F4EF]">{sub.score}%</td>
                           <td className="text-xs text-[#706C65] dark:text-[#A5A29C]">
                             {new Date(sub.created_at).toLocaleString()}
+                          </td>
+                          <td className="text-right whitespace-nowrap">
+                            <button
+                              type="button"
+                              onClick={() => void handleOpenGlobalSubmissionInEditor(sub)}
+                              className="btn-secondary !py-1 !px-2.5 !text-[11px] font-bold hover:text-[#FF6B2C]"
+                              title="Open in editor as an editable copy"
+                            >
+                              Open in Editor →
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -1799,6 +2220,224 @@ export default function StudentDashboardPage() {
           CredLab · Cryptographically Signed University Assessments · 2026
         </footer>
       </div>
+
+      {/* ───────────────── VIEW CODE & SUBMISSION INSPECTION MODAL ───────────────── */}
+      {viewingSubmission && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="flex max-h-[90vh] w-full max-w-3xl flex-col rounded-2xl border border-[#353535] bg-[#1B1B1B] shadow-2xl">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-[#353535] px-6 py-4">
+              <div className="flex items-center gap-3">
+                <span className="text-xl">📄</span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-[#F7F4EF]">
+                      Submission #{viewingSubmission.id}
+                    </h3>
+                    <span
+                      className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                        viewingSubmission.status === "ACCEPTED" || viewingSubmission.score === 100
+                          ? "badge-success"
+                          : "badge-danger"
+                      }`}
+                    >
+                      {viewingSubmission.status}
+                    </span>
+                  </div>
+                  <p className="text-[11px] font-mono text-[#A5A29C]">
+                    Submitted {new Date(viewingSubmission.created_at).toLocaleString()} • Language: {viewingSubmission.language.toUpperCase()}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setViewingSubmission(null)}
+                className="rounded-lg p-1.5 text-xs text-[#A5A29C] hover:bg-[#252525] hover:text-[#F7F4EF]"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Metrics Bar */}
+            <div className="grid grid-cols-2 gap-3 border-b border-[#292929] bg-[#161616] px-6 py-3 sm:grid-cols-4 text-xs font-mono">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-[#77736D]">Score</span>
+                <p className="font-bold text-[#F7F4EF]">{viewingSubmission.score}%</p>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-[#77736D]">Test Cases</span>
+                <p className="font-bold text-[#F7F4EF]">
+                  {viewingSubmission.passed_test_cases} / {viewingSubmission.total_test_cases}
+                </p>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-[#77736D]">Runtime</span>
+                <p className="text-[#C2BDB5]">
+                  {viewingSubmission.execution_time_ms ? `${viewingSubmission.execution_time_ms} ms` : "--"}
+                </p>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-[#77736D]">Memory</span>
+                <p className="text-[#C2BDB5]">
+                  {viewingSubmission.memory_kb ? `${viewingSubmission.memory_kb} KB` : "--"}
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Body: Source Code & Test Details */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {viewingSubmissionLoading ? (
+                <div className="flex h-48 flex-col items-center justify-center gap-2 text-xs text-[#A5A29C]">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#FF6B2C] border-t-transparent" />
+                  <span>Loading submitted source code...</span>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-[#FF8A3D]">
+                        Submitted Source Code
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (viewingSubmission.source_code) {
+                            void navigator.clipboard.writeText(viewingSubmission.source_code);
+                            setCodeCopied(true);
+                            setTimeout(() => setCodeCopied(false), 2000);
+                          }
+                        }}
+                        className="text-[11px] font-bold text-[#A5A29C] hover:text-[#FF6B2C] transition-colors"
+                      >
+                        {codeCopied ? "Copied! ✓" : "Copy Code 📋"}
+                      </button>
+                    </div>
+                    <pre className="rounded-xl border border-[#353535] bg-[#121212] p-4 font-mono text-xs text-[#d4d4d4] leading-5 overflow-x-auto max-h-[300px]">
+                      {viewingSubmission.source_code || "// Source code not available."}
+                    </pre>
+                  </div>
+
+                  {viewingSubmission.error_message && (
+                    <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-xs">
+                      <span className="font-bold text-rose-300 uppercase tracking-wider text-[10px]">
+                        Error Diagnostic Output
+                      </span>
+                      <pre className="mt-1 font-mono text-rose-200 whitespace-pre-wrap">
+                        {viewingSubmission.error_message}
+                      </pre>
+                    </div>
+                  )}
+
+                  {viewingSubmission.test_results && viewingSubmission.test_results.length > 0 && (
+                    <div className="space-y-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-[#A5A29C]">
+                        Test Case Evaluations
+                      </span>
+                      <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                        {viewingSubmission.test_results.map((tr, i) => (
+                          <div
+                            key={tr.id || i}
+                            className={`rounded-lg border p-2.5 text-xs ${
+                              tr.passed
+                                ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-200"
+                                : "border-rose-500/30 bg-rose-500/5 text-rose-200"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between font-mono font-bold text-[11px]">
+                              <span>
+                                {tr.is_hidden ? `Hidden Assessment Case #${i + 1}` : `Public Sample Test #${i + 1}`}
+                              </span>
+                              <span>{tr.passed ? "PASSED ✓" : `FAILED ✗ (${tr.status})`}</span>
+                            </div>
+                            {!tr.is_hidden && tr.input && (
+                              <div className="mt-1.5 grid grid-cols-2 gap-2 text-[10px] text-[#A5A29C]">
+                                <div>
+                                  <span className="font-bold uppercase">Input:</span>
+                                  <pre className="bg-[#121212] p-1.5 rounded font-mono text-[#F7F4EF]">{tr.input}</pre>
+                                </div>
+                                <div>
+                                  <span className="font-bold uppercase">Expected:</span>
+                                  <pre className="bg-[#121212] p-1.5 rounded font-mono text-[#F7F4EF]">{tr.expected_output}</pre>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#353535] bg-[#161616] px-6 py-3.5">
+              <span className="text-[11px] text-[#A5A29C]">
+                Clicking &ldquo;Open in Editor&rdquo; loads this code as an editable copy to submit as a new attempt.
+              </span>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setViewingSubmission(null)}
+                  className="btn-secondary !py-2 !px-4 !text-xs font-bold"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleRequestLoadSubmission(viewingSubmission)}
+                  className="btn-primary !py-2 !px-4 !text-xs font-bold"
+                >
+                  Open in Editor →
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ───────────────── UNSAVED CHANGES CONFIRMATION MODAL ───────────────── */}
+      {confirmOverwriteOpen && pendingSubmissionToLoad && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="w-full max-w-md rounded-2xl border border-amber-500/30 bg-[#1B1B1B] p-6 shadow-2xl">
+            <div className="flex items-center gap-3 text-amber-400">
+              <span className="text-2xl">⚠️</span>
+              <h3 className="text-base font-bold text-[#F7F4EF]">Unsaved Code In Editor</h3>
+            </div>
+            <p className="mt-3 text-xs leading-5 text-[#C2BDB5]">
+              You have unsaved changes in the editor. Loading <strong>Submission #{pendingSubmissionToLoad.id}</strong> will replace your current editor contents with a copy of that attempt.
+            </p>
+            <p className="mt-2 text-[11px] text-[#A5A29C]">
+              Note: The loaded code will remain fully editable, and submitting it will create a <strong>NEW</strong> submission attempt.
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmOverwriteOpen(false);
+                  setPendingSubmissionToLoad(null);
+                }}
+                className="btn-secondary !py-2 !px-4 !text-xs font-bold"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (pendingSubmissionToLoad) {
+                    loadSubmissionIntoEditor(pendingSubmissionToLoad);
+                  }
+                }}
+                className="btn-primary !py-2 !px-4 !text-xs font-bold"
+              >
+                Replace Editor Contents
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
