@@ -76,12 +76,17 @@ def award_badge_if_eligible(
     if existing:
         return existing
 
-    # 4. Resolve course_id from lab
+    # 4. Resolve course_id and names from lab
     course_id = None
+    course_name = None
+    course_code = None
     if practical.lab_id:
         lab = db.query(Lab).filter(Lab.id == practical.lab_id).first()
         if lab:
             course_id = lab.course_id
+            if getattr(lab, "course", None):
+                course_name = lab.course.name
+                course_code = lab.course.code or lab.course.name
 
     # 5. Generate badge metadata
     name, icon = _generate_badge_identity(practical)
@@ -100,6 +105,9 @@ def award_badge_if_eligible(
             "language": submission.language,
             "submission_id": submission.id,
             "practical_title": practical_display,
+            "course_id": course_id,
+            "course_name": course_name,
+            "course_code": course_code,
         },
     )
 

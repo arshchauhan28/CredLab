@@ -41,16 +41,29 @@ router = APIRouter()
 
 def _build_certificate_response(cert: CompletionCertificate) -> CertificateResponse:
     """Builds a complete, typed CertificateResponse from an ORM model."""
-    student_name = cert.student.name if cert.student else cert.payload.get("student_name", "Student")
-    course_id = cert.payload.get("course_id", 0)
-    course_code = cert.payload.get("course_code", "")
-    lab_id = cert.payload.get("lab_id", 0)
-    lab_title = cert.payload.get("lab_title", "")
-    practical_title = cert.payload.get("practical_title", "")
-    score = cert.payload.get("score", 0.0)
-    passing_threshold = cert.payload.get("passing_threshold", 100.0)
+    student_name = cert.student.name if cert.student else (cert.payload or {}).get("student_name", "Student")
+    course_id = cert.course_id or (cert.payload or {}).get("course_id", 0)
+    course_code = (cert.payload or {}).get("course_code", "")
+    course_name = (cert.payload or {}).get("course_name", "")
+    lab_id = (cert.payload or {}).get("lab_id", 0)
+    lab_title = (cert.payload or {}).get("lab_title", "")
+    practical_title = (cert.payload or {}).get("practical_title", "")
+    score = (cert.payload or {}).get("score", 100.0)
+    passing_threshold = (cert.payload or {}).get("passing_threshold", 100.0)
+    cert_type = getattr(cert, "certificate_type", "PRACTICAL") or "PRACTICAL"
 
-    if cert.practical:
+    if cert.course:
+        course_id = cert.course.id
+        course_code = cert.course.code or cert.course.name
+        course_name = cert.course.name
+
+    if cert_type == "SUBJECT":
+        if not lab_title:
+            lab_title = course_name or "Curriculum Assessment"
+        if not practical_title:
+            completed_count = (cert.payload or {}).get("completed_practicals_count", "All")
+            practical_title = f"{completed_count} Required Practicals Completed"
+    elif cert.practical:
         if cert.practical.lab:
             lab_id = cert.practical.lab.id
             lab_title = cert.practical.lab.title
@@ -88,18 +101,21 @@ def _build_certificate_response(cert: CompletionCertificate) -> CertificateRespo
         payload_digest=cert.payload_digest,
         signature=cert.signature,
         status=cert.status,
-        certificate_type=getattr(cert, "certificate_type", "PRACTICAL") or "PRACTICAL",
+        certificate_type=cert_type,
         completed_at=cert.completed_at,
         issued_at=cert.issued_at,
         created_at=cert.created_at,
     )
 
 
+from app.services.certificate_eligibility import get_subject_certificate_eligibility
+
+
 @router.post(
     "/issue",
     response_model=CertificateResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Issue a completion certificate for a completed lab practical",
+    summary="Issue a completion certificate for a completed lab practical (Compatibility mode)",
 )
 def issue_certificate(
     payload: CertificateIssueRequest,
@@ -107,12 +123,8 @@ def issue_certificate(
     db: Session = Depends(get_db),
 ):
     """
-    Issues a tamper-evident, Ed25519 digitally signed completion certificate.
-    Requirements:
-    - User must be enrolled in the course.
-    - All preceding required practicals must be completed (Chunk 9).
-    - User must have a verified passing submission for this practical.
-    - Idempotent: Returns the existing active certificate if already issued.
+    Issues a tamper-evident, Ed25519 digitally signed completion certificate for a lab practical.
+    Maintained in compatibility mode for legacy integration and verification suites.
     """
     cert = certificate_service.issue_certificate_for_practical(
         db=db,
@@ -133,7 +145,7 @@ def get_student_practical_certificate(
     db: Session = Depends(get_db),
 ):
     """
-    Retrieves the active certificate for the given practical issued to the current user.
+    Retrieves the active certificate for the given practical issued to the current user (backward compatibility).
     """
     cert = (
         db.query(CompletionCertificate)
@@ -157,60 +169,53 @@ def list_my_certificates(current_user: User = Depends(get_current_user), db: Ses
     if current_user.role != UserRole.STUDENT:
         raise HTTPException(status_code=403, detail="Student access required.")
     certificates = db.query(CompletionCertificate).filter(CompletionCertificate.student_id == current_user.id).order_by(CompletionCertificate.issued_at.desc()).all()
-    requests = db.query(CertificateApprovalRequest).filter(CertificateApprovalRequest.student_id == current_user.id).order_by(CertificateApprovalRequest.requested_at.desc()).all()
+    requests = db.query(SubjectCertificateRequest).filter(SubjectCertificateRequest.student_id == current_user.id).order_by(SubjectCertificateRequest.requested_at.desc()).all()
     return {
-        "certificates": [{"id": c.id, "status": c.status, "lab_title": (c.payload or {}).get("lab_title", "Completed lab"), "practical_title": (c.payload or {}).get("practical_title", "Practical"), "issued_at": c.issued_at, "payload_digest": c.payload_digest} for c in certificates],
-        "requests": [{"id": r.id, "lab_id": r.lab_id, "lab_title": r.lab.title if r.lab else "Lab", "status": r.status, "review_note": r.review_note, "requested_at": r.requested_at, "reviewed_at": r.reviewed_at} for r in requests],
+        "certificates": [
+            {
+                "id": c.id,
+                "status": c.status,
+                "certificate_type": getattr(c, "certificate_type", "PRACTICAL") or "PRACTICAL",
+                "course_id": c.course_id,
+                "course_name": (c.payload or {}).get("course_name") or (c.course.name if c.course else ""),
+                "course_code": (c.payload or {}).get("course_code") or (c.course.code if c.course else ""),
+                "lab_title": (c.payload or {}).get("lab_title") or (c.course.name if c.course else "Completed lab"),
+                "practical_title": (c.payload or {}).get("practical_title") or "Practical",
+                "issued_at": c.issued_at,
+                "payload_digest": c.payload_digest,
+            }
+            for c in certificates
+        ],
+        "requests": [
+            {
+                "id": r.id,
+                "course_id": r.course_id,
+                "course_name": r.course.name if r.course else "Subject",
+                "course_code": r.course.code if r.course else "",
+                "status": r.status,
+                "review_note": r.review_note,
+                "requested_at": r.requested_at,
+                "reviewed_at": r.reviewed_at,
+            }
+            for r in requests
+        ],
     }
 
 
-@router.get("/approvals", summary="List certificate approval requests for assigned courses")
+@router.get("/approvals", summary="List certificate approval requests for assigned courses (Legacy alias)")
 @router.get("/requests", summary="List certificate approval requests for assigned courses (Compatibility alias)", include_in_schema=False)
 def list_certificate_approvals(current_user: User = Depends(get_current_faculty_or_admin), db: Session = Depends(get_db)):
-    query = db.query(CertificateApprovalRequest).join(CertificateApprovalRequest.lab).join(CertificateApprovalRequest.student)
-    if current_user.role == UserRole.FACULTY:
-        assigned_course_ids = db.query(FacultyCourseAssignment.course_id).filter(FacultyCourseAssignment.faculty_id == current_user.id)
-        query = query.filter(Lab.course_id.in_(assigned_course_ids))
-    requests = query.order_by(CertificateApprovalRequest.requested_at.desc()).all()
-    return {"items": [{"id": r.id, "student_id": r.student_id, "student_name": r.student.name if r.student else "Student", "student_email": r.student.email if r.student else "", "lab_id": r.lab_id, "lab_title": r.lab.title if r.lab else "Lab", "course_id": r.lab.course_id if r.lab else None, "practical_id": r.practical_id, "submission_id": r.submission_id, "status": r.status, "review_note": r.review_note, "requested_at": r.requested_at} for r in requests]}
+    """Legacy approval endpoint returning empty or redirecting to subject-approvals."""
+    return {"items": []}
 
 
-@router.post("/approvals/{request_id}", summary="Approve or reject a lab certificate request")
-@router.post("/requests/{request_id}/review", summary="Approve or reject a lab certificate request (Compatibility alias)", include_in_schema=False)
+@router.post("/approvals/{request_id}", summary="Approve or reject a lab certificate request (Retired)")
+@router.post("/requests/{request_id}/review", summary="Approve or reject a lab certificate request (Retired)", include_in_schema=False)
 def review_certificate_approval(request_id: int, payload: dict, current_user: User = Depends(get_current_faculty_or_admin), db: Session = Depends(get_db)):
-    action = str(payload.get("action", "")).strip().upper()
-    note = str(payload.get("note", "") or payload.get("review_note", "")).strip() or None
-    if action not in {"APPROVE", "REJECT"}:
-        raise HTTPException(status_code=422, detail="action must be APPROVE or REJECT.")
-    request_record = db.query(CertificateApprovalRequest).filter(CertificateApprovalRequest.id == request_id).first()
-    if not request_record:
-        raise HTTPException(status_code=404, detail="Certificate approval request not found.")
-    lab = db.query(Lab).filter(Lab.id == request_record.lab_id).first()
-    if current_user.role == UserRole.FACULTY and (not lab or not is_faculty_assigned_to_course(lab.course_id, current_user.id, db)):
-        raise HTTPException(status_code=403, detail="You are not assigned to this lab's subject.")
-    if request_record.status != "PENDING":
-        raise HTTPException(status_code=409, detail=f"This request has already been {request_record.status.lower()}.")
-    request_record.reviewed_by = current_user.id
-    request_record.review_note = note
-    request_record.reviewed_at = __import__("datetime").datetime.now(__import__("datetime").timezone.utc)
-    if action == "REJECT":
-        request_record.status = "REJECTED"
-        db.commit()
-        return {"status": request_record.status, "message": "Certificate request rejected."}
-    student = db.query(User).filter(User.id == request_record.student_id).first()
-    if not student:
-        raise HTTPException(status_code=404, detail="Student account not found.")
-    try:
-        certificate_service.issue_certificate_for_practical(db=db, student=student, practical_id=request_record.practical_id)
-    except HTTPException:
-        db.rollback()
-        raise
-    except Exception:
-        db.rollback()
-        raise HTTPException(status_code=500, detail="Certificate could not be issued. Check certificate signing-key configuration.") from None
-    request_record.status = "APPROVED"
-    db.commit()
-    return {"status": request_record.status, "message": "Certificate approved and issued."}
+    raise HTTPException(
+        status_code=status.HTTP_410_GONE,
+        detail="Lab-level certificate approvals are retired. Use /api/certificates/subject-approvals to review subject completion certificates.",
+    )
 
 
 @router.post("/subject-requests", summary="Student requests a subject-level completion certificate")
@@ -221,6 +226,7 @@ def request_subject_certificate(
 ):
     """
     Submits a request for a subject completion certificate once all required practicals are completed.
+    Uses centralized eligibility service.
     """
     if current_user.role != UserRole.STUDENT:
         raise HTTPException(status_code=403, detail="Only students can request subject certificates.")
@@ -229,64 +235,26 @@ def request_subject_certificate(
     if not course_id:
         raise HTTPException(status_code=400, detail="course_id is required.")
 
-    course = db.query(Course).filter(Course.id == course_id, Course.is_active.is_(True)).first()
-    if not course:
-        raise HTTPException(status_code=404, detail="Subject not found or inactive.")
+    eligibility = get_subject_certificate_eligibility(db, current_user.id, course_id)
 
-    # Verify enrollment
-    enrollment = db.query(CourseEnrollment).filter(
-        CourseEnrollment.course_id == course.id,
-        CourseEnrollment.student_id == current_user.id,
-        CourseEnrollment.status == "ENROLLED",
-    ).first()
-    if not enrollment:
+    if not eligibility.is_enrolled:
         raise HTTPException(status_code=403, detail="You are not enrolled in this subject.")
 
-    # Check for existing active certificate
-    existing_cert = db.query(CompletionCertificate).filter(
-        CompletionCertificate.student_id == current_user.id,
-        CompletionCertificate.course_id == course.id,
-        CompletionCertificate.certificate_type == "SUBJECT",
-        CompletionCertificate.status == "ACTIVE",
-    ).first()
-    if existing_cert:
+    if eligibility.certificate_status == "ISSUED":
         raise HTTPException(status_code=409, detail="A certificate for this subject has already been issued.")
 
-    # Check for existing pending request
-    existing_req = db.query(SubjectCertificateRequest).filter(
-        SubjectCertificateRequest.student_id == current_user.id,
-        SubjectCertificateRequest.course_id == course.id,
-    ).first()
-    if existing_req and existing_req.status == "PENDING":
+    if eligibility.certificate_status == "PENDING_APPROVAL":
         raise HTTPException(status_code=409, detail="A certificate request for this subject is already pending approval.")
 
-    # Verify that all required practicals are passed
-    lab_ids = [l.id for l in course.labs]
-    if not lab_ids:
-        raise HTTPException(status_code=400, detail="This subject currently has no laboratories.")
-
-    required_practicals = db.query(LabPractical).filter(
-        LabPractical.lab_id.in_(lab_ids),
-        LabPractical.is_required.is_(True),
-    ).all()
-    if not required_practicals:
-        raise HTTPException(status_code=400, detail="This subject currently has no required practicals.")
-
-    for req in required_practicals:
-        passed = db.query(Submission).filter(
-            Submission.user_id == current_user.id,
-            Submission.practical_id == req.id,
-            Submission.status == SubmissionStatus.ACCEPTED,
-            Submission.score >= req.passing_threshold,
-        ).first()
-        if not passed:
-            prac_name = getattr(req, "effective_title", None) or getattr(req, "title", None) or (req.question.title if getattr(req, "question", None) else str(req.id))
-            raise HTTPException(
-                status_code=400,
-                detail=f"Ineligible: You must pass required practical '{prac_name}' before requesting a certificate.",
-            )
+    if not eligibility.is_eligible:
+        raise HTTPException(status_code=400, detail=f"Ineligible: {eligibility.eligibility_reason}")
 
     from datetime import datetime, timezone
+    existing_req = db.query(SubjectCertificateRequest).filter(
+        SubjectCertificateRequest.student_id == current_user.id,
+        SubjectCertificateRequest.course_id == course_id,
+    ).first()
+
     if existing_req:
         # Re-request after rejection
         existing_req.status = "PENDING"
@@ -300,7 +268,7 @@ def request_subject_certificate(
     else:
         new_req = SubjectCertificateRequest(
             student_id=current_user.id,
-            course_id=course.id,
+            course_id=course_id,
             status="PENDING",
         )
         db.add(new_req)
@@ -322,10 +290,7 @@ def list_subject_certificate_approvals(
     requests = query.order_by(SubjectCertificateRequest.requested_at.desc()).all()
     items = []
     for r in requests:
-        # Calculate practical stats for this student and course
-        course = r.course
-        lab_ids = [l.id for l in course.labs] if course else []
-        req_count = db.query(LabPractical).filter(LabPractical.lab_id.in_(lab_ids), LabPractical.is_required.is_(True)).count() if lab_ids else 0
+        eligibility = get_subject_certificate_eligibility(db, r.student_id, r.course_id)
         items.append({
             "id": r.id,
             "student_id": r.student_id,
@@ -335,7 +300,11 @@ def list_subject_certificate_approvals(
             "course_id": r.course_id,
             "course_name": r.course.name if r.course else "Subject",
             "course_code": r.course.code if r.course else "",
-            "total_required": req_count,
+            "total_required": eligibility.total_required,
+            "completed_required": eligibility.completed_required,
+            "remaining_required": eligibility.remaining_required,
+            "incomplete_practicals": eligibility.incomplete_practical_titles,
+            "is_eligible": eligibility.is_eligible,
             "status": r.status,
             "review_note": r.review_note,
             "requested_at": r.requested_at,
@@ -352,7 +321,7 @@ def review_subject_certificate_approval(
     db: Session = Depends(get_db),
 ):
     action = str(payload.get("action", "")).strip().upper()
-    note = str(payload.get("note", "")).strip() or None
+    note = str(payload.get("note", "") or payload.get("review_note", "")).strip() or None
     if action not in {"APPROVE", "REJECT"}:
         raise HTTPException(status_code=422, detail="action must be APPROVE or REJECT.")
 
@@ -384,6 +353,16 @@ def review_subject_certificate_approval(
     if not student or not course:
         raise HTTPException(status_code=404, detail="Student or Course not found.")
 
+    # Revalidate authoritative eligibility
+    eligibility = get_subject_certificate_eligibility(db, student.id, course.id)
+    if not eligibility.is_enrolled:
+        raise HTTPException(status_code=400, detail="Student is not currently enrolled in this subject.")
+    if eligibility.total_required == 0 or eligibility.completed_required < eligibility.total_required:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot approve: Student has not passed all required practicals. {len(eligibility.incomplete_practical_titles)} remaining.",
+        )
+
     try:
         cert = certificate_service.issue_subject_certificate(db=db, student=student, course=course)
         req.status = "APPROVED"
@@ -406,120 +385,78 @@ def get_student_academic_progress(
         raise HTTPException(status_code=403, detail="Only students have academic progress records.")
 
     # 1. Enrolled courses
-    enrollments = db.query(CourseEnrollment).join(CourseEnrollment.course).filter(
-        CourseEnrollment.student_id == current_user.id,
-        CourseEnrollment.status == "ENROLLED",
-        Course.is_active.is_(True),
-    ).all()
+    enrollments = (
+        db.query(CourseEnrollment)
+        .join(CourseEnrollment.course)
+        .filter(
+            CourseEnrollment.student_id == current_user.id,
+            CourseEnrollment.status == "ENROLLED",
+            Course.is_active.isnot(False),
+        )
+        .all()
+    )
 
     progress_list = []
     for enr in enrollments:
         c = enr.course
-        lab_ids = [l.id for l in c.labs]
-        practicals = db.query(LabPractical).filter(
-            LabPractical.lab_id.in_(lab_ids),
-        ).all() if lab_ids else []
+        eligibility = get_subject_certificate_eligibility(db, current_user.id, c.id)
 
-        required_practicals = [p for p in practicals if p.is_required]
-        total_required = len(required_practicals)
-
-        # Count completed practicals
-        completed_count = 0
-        req_ids = [p.id for p in required_practicals]
-        if req_ids:
-            for p in required_practicals:
-                passed = db.query(Submission.id).filter(
-                    Submission.user_id == current_user.id,
-                    Submission.practical_id == p.id,
-                    Submission.status == SubmissionStatus.ACCEPTED,
-                    Submission.score >= p.passing_threshold,
-                ).first()
-                if passed:
-                    completed_count += 1
-
-        # Ensure badges are awarded for any passing practicals
-        for p in practicals:
-            passing_sub = (
-                db.query(Submission)
-                .filter(
-                    Submission.user_id == current_user.id,
-                    Submission.practical_id == p.id,
-                    Submission.status == SubmissionStatus.ACCEPTED,
-                    Submission.score >= p.passing_threshold,
-                )
-                .order_by(Submission.score.desc(), Submission.id.desc())
-                .first()
-            )
-            if passing_sub:
-                award_badge_if_eligible(db, current_user.id, p, passing_sub)
-
-        # Badges earned for this course
-        practical_ids = [p.id for p in practicals]
+        # Count badges earned for this course
         badges_earned = db.query(Badge).filter(
             Badge.user_id == current_user.id,
-            Badge.practical_id.in_(practical_ids),
-        ).count() if practical_ids else 0
-
-        # Certificate status
-        subject_cert = db.query(CompletionCertificate).filter(
-            CompletionCertificate.student_id == current_user.id,
-            CompletionCertificate.course_id == c.id,
-            CompletionCertificate.certificate_type == "SUBJECT",
-            CompletionCertificate.status == "ACTIVE",
-        ).first()
-
-        cert_req = db.query(SubjectCertificateRequest).filter(
-            SubjectCertificateRequest.student_id == current_user.id,
-            SubjectCertificateRequest.course_id == c.id,
-        ).first()
-
-        if subject_cert:
-            cert_status = "ISSUED"
-            cert_id = subject_cert.id
-        elif cert_req and cert_req.status == "PENDING":
-            cert_status = "PENDING_APPROVAL"
-            cert_id = None
-        elif cert_req and cert_req.status == "REJECTED":
-            cert_status = "REJECTED"
-            cert_id = None
-        elif total_required > 0 and completed_count >= total_required:
-            cert_status = "ELIGIBLE"
-            cert_id = None
-        else:
-            cert_status = "NOT_ELIGIBLE"
-            cert_id = None
-
-        pct = round((completed_count / total_required * 100), 1) if total_required > 0 else 0.0
+            Badge.course_id == c.id,
+        ).count()
 
         progress_list.append({
             "course_id": c.id,
             "course_name": c.name,
             "course_code": c.code or "",
-            "total_required": total_required,
-            "completed_required": completed_count,
-            "remaining_required": max(0, total_required - completed_count),
-            "completion_percentage": pct,
+            "total_required": eligibility.total_required,
+            "completed_required": eligibility.completed_required,
+            "remaining_required": eligibility.remaining_required,
+            "completion_percentage": eligibility.completion_percentage,
             "badges_earned": badges_earned,
-            "certificate_status": cert_status,
-            "certificate_id": cert_id,
-            "rejection_note": cert_req.review_note if cert_req and cert_req.status == "REJECTED" else None,
+            "certificate_status": eligibility.certificate_status,
+            "certificate_id": eligibility.certificate_id,
+            "rejection_note": eligibility.rejection_note,
         })
 
-    # Also query all badges earned by the student
-    all_badges = db.query(Badge).filter(Badge.user_id == current_user.id).order_by(Badge.earned_at.desc()).all()
-    badges_data = [
-        {
+    # Query all badges earned by the student
+    all_badges = (
+        db.query(Badge)
+        .filter(Badge.user_id == current_user.id)
+        .order_by(Badge.earned_at.desc())
+        .all()
+    )
+
+    badges_data = []
+    for b in all_badges:
+        meta = b.meta or {}
+        practical_display = (
+            meta.get("practical_title")
+            or (b.practical.title if getattr(b, "practical", None) and b.practical.title else f"Practical #{b.practical_id}")
+        )
+        course_display = (
+            meta.get("course_name")
+            or (b.course.name if getattr(b, "course", None) and b.course.name else "Subject Lab")
+        )
+        course_code_display = (
+            meta.get("course_code")
+            or (b.course.code if getattr(b, "course", None) and b.course.code else "")
+        )
+        badges_data.append({
             "id": b.id,
             "name": b.name,
             "description": b.description,
             "icon": b.icon,
-            "earned_at": b.earned_at,
+            "earned_at": b.earned_at.isoformat() if hasattr(b.earned_at, "isoformat") else str(b.earned_at),
             "practical_id": b.practical_id,
+            "practical_title": practical_display,
             "course_id": b.course_id,
-            "meta": b.meta,
-        }
-        for b in all_badges
-    ]
+            "course_name": course_display,
+            "course_code": course_code_display,
+            "meta": meta,
+        })
 
     return {
         "subjects": progress_list,
@@ -574,18 +511,34 @@ def get_certificate_by_id(
 
 
 def _build_public_certificate_response(cert: CompletionCertificate) -> CertificatePublicResponse:
-    student_name = cert.student.name if cert.student else cert.payload.get("student_name", "Student")
-    course_code = cert.payload.get("course_code", "")
-    lab_title = cert.payload.get("lab_title", "")
-    practical_title = cert.payload.get("practical_title", "")
-    score = cert.payload.get("score", 0.0)
-    passing_threshold = cert.payload.get("passing_threshold", 100.0)
+    student_name = cert.student.name if cert.student else (cert.payload or {}).get("student_name", "Student")
+    course_code = (cert.payload or {}).get("course_code", "")
+    course_name = (cert.payload or {}).get("course_name", "")
+    lab_title = (cert.payload or {}).get("lab_title", "")
+    practical_title = (cert.payload or {}).get("practical_title", "")
+    score = (cert.payload or {}).get("score", 100.0)
+    passing_threshold = (cert.payload or {}).get("passing_threshold", 100.0)
+    cert_type = getattr(cert, "certificate_type", "PRACTICAL") or "PRACTICAL"
 
-    if cert.practical:
+    if cert.course:
+        course_code = cert.course.code or cert.course.name
+        course_name = cert.course.name
+
+    completed_practicals_count = (cert.payload or {}).get("completed_practicals_count")
+    total_practicals_count = (cert.payload or {}).get("total_practicals_count")
+
+    if cert_type == "SUBJECT":
+        if not lab_title:
+            lab_title = course_name or "Curriculum Assessment"
+        if not practical_title:
+            completed_count = completed_practicals_count or "All"
+            practical_title = f"{completed_count} Required Practicals Completed"
+    elif cert.practical:
         if cert.practical.lab:
             lab_title = cert.practical.lab.title
             if cert.practical.lab.course:
                 course_code = cert.practical.lab.course.code or cert.practical.lab.course.name
+                course_name = cert.practical.lab.course.name
         practical_title = (
             cert.practical.title
             if cert.practical.title
@@ -600,10 +553,14 @@ def _build_public_certificate_response(cert: CompletionCertificate) -> Certifica
         certificate_id=cert.id,
         student_name=student_name,
         course_code=course_code,
+        course_name=course_name,
+        certificate_type=cert_type,
         lab_title=lab_title,
         practical_title=practical_title,
         score=score,
         passing_threshold=passing_threshold,
+        completed_practicals_count=completed_practicals_count,
+        total_practicals_count=total_practicals_count,
         completed_at=cert.completed_at.isoformat() if hasattr(cert.completed_at, "isoformat") else str(cert.completed_at),
         issued_at=cert.issued_at.isoformat() if hasattr(cert.issued_at, "isoformat") else str(cert.issued_at),
         issuer=cert.issuer,

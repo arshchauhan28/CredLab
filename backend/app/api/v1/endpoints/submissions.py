@@ -255,52 +255,12 @@ async def create_submission(
     # 6. Execute automated grading pipeline
     evaluated_submission = await grading_service.evaluate_submission(db, submission)
 
-    # When every required practical in a lab has passed, create one certificate
-    # approval request for faculty. Certificate issuance itself remains gated by
-    # the explicit faculty approval endpoint.
     # Automatic practical badge award
     if current_user.role == UserRole.STUDENT and payload.practical_id is not None:
         practical = db.query(LabPractical).filter(LabPractical.id == payload.practical_id).first()
         if practical and evaluated_submission.status == SubmissionStatus.ACCEPTED and evaluated_submission.score >= practical.passing_threshold:
             from app.services.badge_service import award_badge_if_eligible
             award_badge_if_eligible(db, current_user.id, practical, evaluated_submission)
-
-            lab = db.query(Lab).filter(Lab.id == practical.lab_id).first()
-            if lab:
-                required = db.query(LabPractical).filter(LabPractical.lab_id == lab.id, LabPractical.is_required.is_(True)).order_by(LabPractical.sequence_number.asc(), LabPractical.id.asc()).all()
-                all_passed = bool(required)
-                for required_practical in required:
-                    passed = db.query(Submission.id).filter(
-                        Submission.user_id == current_user.id,
-                        Submission.practical_id == required_practical.id,
-                        Submission.status == SubmissionStatus.ACCEPTED,
-                        Submission.score >= required_practical.passing_threshold,
-                    ).first()
-                    if not passed:
-                        all_passed = False
-                        break
-                if all_passed:
-                    final_practical = required[-1]
-                    final_submission = db.query(Submission).filter(
-                        Submission.user_id == current_user.id,
-                        Submission.practical_id == final_practical.id,
-                        Submission.status == SubmissionStatus.ACCEPTED,
-                        Submission.score >= final_practical.passing_threshold,
-                    ).order_by(Submission.created_at.desc()).first()
-                    if final_submission:
-                        existing_request = db.query(CertificateApprovalRequest).filter(
-                            CertificateApprovalRequest.student_id == current_user.id,
-                            CertificateApprovalRequest.lab_id == lab.id,
-                        ).first()
-                        if not existing_request:
-                            db.add(CertificateApprovalRequest(
-                                student_id=current_user.id,
-                                lab_id=lab.id,
-                                practical_id=final_practical.id,
-                                submission_id=final_submission.id,
-                                status="PENDING",
-                            ))
-                            db.commit()
 
     # Re-fetch with test results and test cases eagerly loaded for safe serialization
     final_submission = (

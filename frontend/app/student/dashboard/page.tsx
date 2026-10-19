@@ -10,6 +10,22 @@ import type { UserResponse } from "@/types/auth";
 import { PROGRAM_OPTIONS } from "@/lib/academic-options";
 import { CredLabLogo } from "@/components/CredLabLogo";
 import { DashboardAmbientGrid } from "@/components/3d/DashboardAmbientGrid";
+import { BadgeRenderer, downloadBadgePng } from "@/components/BadgeRenderer";
+import { BadgeModal } from "@/components/BadgeModal";
+import { CertificateRenderer } from "@/components/CertificateRenderer";
+import { CertificateModal } from "@/components/CertificateModal";
+import {
+  Award,
+  ShieldCheck,
+  Download,
+  Search,
+  Sparkles,
+  CheckCircle2,
+  ChevronRight,
+  ArrowRight,
+  Eye,
+  BookOpen,
+} from "lucide-react";
 
 type Course = {
   id: number;
@@ -99,15 +115,24 @@ type CertificateData = {
   certificates: {
     id: string;
     status: string;
+    certificate_type?: string;
+    course_id?: number | null;
+    course_name?: string;
+    course_code?: string;
     lab_title: string;
     practical_title: string;
+    completed_practicals_count?: number;
+    total_practicals_count?: number;
+    completed_at?: string;
     issued_at: string;
     payload_digest: string;
   }[];
   requests: {
     id: number;
-    lab_id: number;
-    lab_title: string;
+    course_id?: number;
+    course_name?: string;
+    lab_id?: number;
+    lab_title?: string;
     status: string;
     review_note?: string | null;
     requested_at: string;
@@ -135,7 +160,10 @@ type BadgeItem = {
   icon: string;
   earned_at: string;
   practical_id: number;
+  practical_title?: string;
   course_id?: number | null;
+  course_name?: string;
+  course_code?: string;
   meta?: Record<string, unknown> | null;
 };
 
@@ -255,6 +283,62 @@ export default function StudentDashboardPage() {
   const [earnedBadges, setEarnedBadges] = useState<BadgeItem[]>([]);
   const [requestingCertCourseId, setRequestingCertCourseId] = useState<number | null>(null);
   const [certRequestMessage, setCertRequestMessage] = useState("");
+
+  // Achievement & Credential Modals & Filtering State
+  const [selectedBadgeForModal, setSelectedBadgeForModal] = useState<BadgeItem | null>(null);
+  const [selectedCertForModal, setSelectedCertForModal] = useState<{
+    id: string;
+    student_name?: string;
+    course_name?: string;
+    course_code?: string;
+    completed_practicals_count?: number;
+    total_practicals_count?: number;
+    completed_at?: string;
+    issued_at?: string;
+    issuer?: string;
+    status?: string;
+  } | null>(null);
+  const [badgeSearchQuery, setBadgeSearchQuery] = useState("");
+  const [badgeSubjectFilter, setBadgeSubjectFilter] = useState("ALL");
+  const [badgeSortOrder, setBadgeSortOrder] = useState<"newest" | "oldest" | "alpha">("newest");
+
+  // Derived unique subjects for badge filter
+  const badgeSubjects = useMemo(() => {
+    const set = new Set<string>();
+    earnedBadges.forEach((b) => {
+      const s = b.course_name || (b.meta as { course_name?: string })?.course_name;
+      if (s) set.add(s);
+    });
+    return Array.from(set);
+  }, [earnedBadges]);
+
+  // Filtered and sorted badges for the gallery
+  const filteredBadges = useMemo(() => {
+    return earnedBadges
+      .filter((b) => {
+        const subj = (b.course_name || (b.meta as { course_name?: string })?.course_name || "").toLowerCase();
+        const prac = (b.practical_title || (b.meta as { practical_title?: string })?.practical_title || b.name || "").toLowerCase();
+        const code = (b.course_code || (b.meta as { course_code?: string })?.course_code || "").toLowerCase();
+        const q = badgeSearchQuery.toLowerCase().trim();
+
+        const matchesQuery = !q || subj.includes(q) || prac.includes(q) || code.includes(q);
+        const matchesSubj =
+          badgeSubjectFilter === "ALL" ||
+          (b.course_name || (b.meta as { course_name?: string })?.course_name) === badgeSubjectFilter;
+        return matchesQuery && matchesSubj;
+      })
+      .sort((a, b) => {
+        if (badgeSortOrder === "newest") {
+          return new Date(b.earned_at).getTime() - new Date(a.earned_at).getTime();
+        }
+        if (badgeSortOrder === "oldest") {
+          return new Date(a.earned_at).getTime() - new Date(b.earned_at).getTime();
+        }
+        const titleA = a.practical_title || (a.meta as { practical_title?: string })?.practical_title || a.name || "";
+        const titleB = b.practical_title || (b.meta as { practical_title?: string })?.practical_title || b.name || "";
+        return titleA.localeCompare(titleB);
+      });
+  }, [earnedBadges, badgeSearchQuery, badgeSubjectFilter, badgeSortOrder]);
 
   // Challenge-specific Submission History (LeetCode-style)
   const [problemPaneTab, setProblemPaneTab] = useState<"description" | "submissions">("description");
@@ -1814,265 +1898,536 @@ export default function StudentDashboardPage() {
           </div>
         )}
 
-        {/* ───────────────── TAB: ACHIEVEMENTS (PARTS 10, 11 & 12) ───────────────── */}
+        {/* ───────────────── TAB: ACHIEVEMENTS (UNIFIED CREDENTIAL SYSTEM) ───────────────── */}
         {tab === "Achievements" && (
-          <div className="mt-6 space-y-6 animate-fade-in">
+          <div className="mt-6 space-y-8 animate-fade-in">
             {certRequestMessage && (
-              <div className="lux-card p-4 bg-[#FF6B2C]/10 border border-[#FF6B2C]/30 flex items-center justify-between text-xs text-[#FF6B2C] dark:text-[#FFB547] font-bold">
-                <span>{certRequestMessage}</span>
+              <div className="lux-card p-4 bg-[#FF6B2C]/10 border border-[#FF6B2C]/30 flex items-center justify-between text-xs text-[#FF6B2C] dark:text-[#FFB547] font-bold rounded-2xl">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-[#FF7A18]" />
+                  <span>{certRequestMessage}</span>
+                </div>
                 <button
                   onClick={() => setCertRequestMessage("")}
-                  className="text-xs text-[#706C65] dark:text-[#A5A29C] hover:text-[#191919] dark:hover:text-[#F7F4EF]"
+                  className="text-xs text-[#706C65] dark:text-[#A5A29C] hover:text-[#191919] dark:hover:text-[#F7F4EF] transition cursor-pointer"
                 >
                   Dismiss
                 </button>
               </div>
             )}
 
-            {/* AREA A: BADGES (PART 10) */}
-            <div className="lux-card p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-bold text-[#191919] dark:text-[#F7F4EF]">Earned Practical Badges</h2>
-                  <p className="mt-0.5 text-xs text-[#706C65] dark:text-[#A5A29C]">
-                    Automatically unlocked upon achieving 100% test evaluation score on practical challenges.
-                  </p>
+            {/* STATS OVERVIEW CARDS */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="lux-card p-5 border border-[#E4DDD2] dark:border-[#2D2D2D] bg-[#FFFCF6] dark:bg-[#18181A] rounded-2xl flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-500/10 text-[#FF7A18] border border-orange-500/20">
+                  <Award className="w-6 h-6" />
                 </div>
-                <span className="badge-primary px-3 py-1 text-xs font-bold rounded-full">
-                  {earnedBadges.length} Earned
-                </span>
+                <div>
+                  <div className="text-2xl font-black text-[#191919] dark:text-[#F7F4EF]">
+                    {earnedBadges.length}
+                  </div>
+                  <div className="text-xs font-bold text-[#706C65] dark:text-[#A5A29C]">
+                    Practical Badges Earned
+                  </div>
+                </div>
               </div>
 
-              {earnedBadges.length > 0 ? (
-                <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {earnedBadges.map((badge) => (
-                    <div
-                      key={badge.id}
-                      className="lux-card p-4 border border-[#E4DDD2] dark:border-[#2D2D2D] bg-[#FFFCF6] dark:bg-[#1B1B1B] flex items-start gap-3.5 hover:shadow-sm transition"
-                    >
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#FFFFFF] dark:bg-[#252525] border border-[#E4DDD2] dark:border-[#2D2D2D] text-2xl shadow-xs">
-                        {badge.icon || "🎖️"}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-extrabold text-xs text-[#191919] dark:text-[#F7F4EF] truncate">
-                          {badge.name}
-                        </h3>
-                        <p className="mt-1 text-[11px] text-[#706C65] dark:text-[#A5A29C] line-clamp-2">
-                          {badge.description || "Milestone awarded for flawless automated test execution."}
-                        </p>
-                        <p className="mt-2 font-mono text-[10px] text-[#FF6B2C] dark:text-[#FFB547]">
-                          Unlocked: {new Date(badge.earned_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+              <div className="lux-card p-5 border border-[#E4DDD2] dark:border-[#2D2D2D] bg-[#FFFCF6] dark:bg-[#18181A] rounded-2xl flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                  <ShieldCheck className="w-6 h-6" />
                 </div>
-              ) : (
-                <div className="mt-6 text-center py-8 text-xs text-[#706C65] dark:text-[#A5A29C] rounded-xl bg-[#FFFCF6] dark:bg-[#1B1B1B] border border-dashed border-[#E4DDD2] dark:border-[#2D2D2D]">
-                  No badges unlocked yet. Score 100% on any curriculum practical to automatically receive your milestone badge.
+                <div>
+                  <div className="text-2xl font-black text-[#191919] dark:text-[#F7F4EF]">
+                    {studentProgress.filter((s) => s.certificate_status === "ISSUED").length}
+                  </div>
+                  <div className="text-xs font-bold text-[#706C65] dark:text-[#A5A29C]">
+                    Certified Subjects
+                  </div>
                 </div>
-              )}
+              </div>
+
+              <div className="lux-card p-5 border border-[#E4DDD2] dark:border-[#2D2D2D] bg-[#FFFCF6] dark:bg-[#18181A] rounded-2xl flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                  <BookOpen className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-[#191919] dark:text-[#F7F4EF]">
+                    {studentProgress.reduce((acc, s) => acc + s.completed_required, 0)} /{" "}
+                    {studentProgress.reduce((acc, s) => acc + s.total_required, 0)}
+                  </div>
+                  <div className="text-xs font-bold text-[#706C65] dark:text-[#A5A29C]">
+                    Required Practicals Done
+                  </div>
+                </div>
+              </div>
+
+              <div className="lux-card p-5 border border-[#E4DDD2] dark:border-[#2D2D2D] bg-[#FFFCF6] dark:bg-[#18181A] rounded-2xl flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="text-sm font-black text-[#191919] dark:text-[#F7F4EF] uppercase tracking-wide">
+                    ED25519-SHA256
+                  </div>
+                  <div className="text-xs font-bold text-[#706C65] dark:text-[#A5A29C]">
+                    Cryptographic Integrity
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* AREA B: DIGITAL CERTIFICATES & DIPLOMAS (PART 11) */}
-            <div className="lux-card p-6">
-              <div className="flex items-center justify-between">
+            {/* ═══════════════════════════════════════════════════════════════ */}
+            {/* SECTION 1: PRACTICAL ACHIEVEMENT BADGE GALLERY (APPEARS FIRST)  */}
+            {/* ═══════════════════════════════════════════════════════════════ */}
+            <section className="lux-card p-6 sm:p-8 rounded-3xl border border-[#E4DDD2] dark:border-[#2D2D2D] bg-[#FFFCF6] dark:bg-[#161618] shadow-sm">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[#E4DDD2] dark:border-[#2D2D2D]">
                 <div>
-                  <h2 className="text-lg font-bold text-[#191919] dark:text-[#F7F4EF]">Digital Milestone Diplomas</h2>
-                  <p className="mt-0.5 text-xs text-[#706C65] dark:text-[#A5A29C]">
-                    Cryptographically authenticated and signed with university Ed25519 asymmetric keys.
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 rounded-lg bg-[#FF7A18]/10 text-[#FF7A18]">
+                      <Award className="w-5 h-5" />
+                    </span>
+                    <h2 className="text-xl font-extrabold text-[#191919] dark:text-[#F7F4EF] tracking-tight">
+                      Practical Achievement Badge Gallery
+                    </h2>
+                  </div>
+                  <p className="mt-1 text-xs text-[#706C65] dark:text-[#A5A29C]">
+                    Individual practical completion badges automatically awarded upon passing automated evaluations.
                   </p>
                 </div>
-                <span className="badge-primary px-3 py-1 text-xs font-bold rounded-full">
-                  {certificateData.certificates.length} Issued
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="badge-primary px-3.5 py-1 text-xs font-extrabold rounded-full shadow-xs">
+                    {filteredBadges.length} {filteredBadges.length === 1 ? "Badge" : "Badges"} Unlocked
+                  </span>
+                </div>
               </div>
 
-              {certificateData.certificates.length > 0 ? (
-                <div className="mt-6 grid gap-4 md:grid-cols-2">
-                  {certificateData.certificates.map((cert) => (
-                    <div
-                      key={cert.id}
-                      className="lux-card p-5 border border-[#E4DDD2] dark:border-[#2D2D2D] bg-[#FFFCF6] dark:bg-[#1B1B1B] flex flex-col justify-between"
-                    >
-                      <div>
-                        <div className="flex items-center justify-between">
-                          <span className="badge-success px-2.5 py-0.5 text-[10px] font-bold rounded-md">
-                            VALID ED25519 DIPLOMA ✓
-                          </span>
-                          <span className="font-mono text-[10px] text-[#706C65] dark:text-[#A5A29C]">
-                            {new Date(cert.issued_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <h3 className="mt-3 font-extrabold text-[#191919] dark:text-[#F7F4EF]">
-                          {cert.lab_title || "Academic Course Completion"}
-                        </h3>
-                        <p className="mt-1 text-xs text-[#706C65] dark:text-[#A5A29C]">
-                          {cert.practical_title || "All Curriculum Requirements Satisfied"}
-                        </p>
-                        <p className="mt-2 font-mono text-[10px] text-[#706C65] dark:text-[#A5A29C] truncate">
-                          Digest: {cert.payload_digest}
-                        </p>
-                      </div>
+              {/* SEARCH & FILTER CONTROLS */}
+              {earnedBadges.length > 0 && (
+                <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                  {/* Search Bar */}
+                  <div className="relative flex-1 max-w-md">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#706C65] dark:text-[#A5A29C]" />
+                    <input
+                      type="text"
+                      value={badgeSearchQuery}
+                      onChange={(e) => setBadgeSearchQuery(e.target.value)}
+                      placeholder="Search badges by practical title or subject..."
+                      className="w-full pl-9.5 pr-4 py-2 rounded-xl text-xs bg-[#F7F4EF] dark:bg-[#1E1E22] border border-[#E4DDD2] dark:border-[#2E2E32] text-[#191919] dark:text-[#F7F4EF] placeholder-[#A5A29C] focus:outline-none focus:border-[#FF7A18] transition"
+                    />
+                  </div>
 
-                      <div className="mt-5 pt-3 border-t border-[#E4DDD2] dark:border-[#2D2D2D]">
-                        <Link
-                          href={`/certificates/${cert.id}`}
-                          className="inline-flex items-center gap-1.5 text-xs font-bold text-[#FF6B2C] dark:text-[#FFB547] hover:underline"
-                        >
-                          View Official Verifiable Diploma →
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="mt-6 text-center py-8 text-xs text-[#706C65] dark:text-[#A5A29C] rounded-xl bg-[#FFFCF6] dark:bg-[#1B1B1B] border border-dashed border-[#E4DDD2] dark:border-[#2D2D2D]">
-                  No diplomas issued yet. Complete all required practicals for a subject below and request faculty verification.
+                  {/* Filter Pills & Sort Dropdown */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Subject Filter Dropdown */}
+                    {badgeSubjects.length > 0 && (
+                      <select
+                        value={badgeSubjectFilter}
+                        onChange={(e) => setBadgeSubjectFilter(e.target.value)}
+                        className="py-2 px-3 rounded-xl text-xs font-bold bg-[#F7F4EF] dark:bg-[#1E1E22] border border-[#E4DDD2] dark:border-[#2E2E32] text-[#191919] dark:text-[#F7F4EF] focus:outline-none focus:border-[#FF7A18] transition cursor-pointer"
+                      >
+                        <option value="ALL">All Subjects ({earnedBadges.length})</option>
+                        {badgeSubjects.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+
+                    {/* Sort Order Selector */}
+                    <select
+                      value={badgeSortOrder}
+                      onChange={(e) => setBadgeSortOrder(e.target.value as "newest" | "oldest" | "alpha")}
+                      className="py-2 px-3 rounded-xl text-xs font-bold bg-[#F7F4EF] dark:bg-[#1E1E22] border border-[#E4DDD2] dark:border-[#2E2E32] text-[#191919] dark:text-[#F7F4EF] focus:outline-none focus:border-[#FF7A18] transition cursor-pointer"
+                    >
+                      <option value="newest">Newest First</option>
+                      <option value="oldest">Oldest First</option>
+                      <option value="alpha">Title (A-Z)</option>
+                    </select>
+                  </div>
                 </div>
               )}
-            </div>
 
-            {/* AREA C: SUBJECT ACADEMIC PROGRESS (PART 12) */}
-            <div className="lux-card p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-bold text-[#191919] dark:text-[#F7F4EF]">Curriculum Subject Progress</h2>
-                  <p className="mt-0.5 text-xs text-[#706C65] dark:text-[#A5A29C]">
-                    Track practical completion and certificate eligibility across your active subjects.
-                  </p>
-                </div>
-                <span className="badge-primary px-3 py-1 text-xs font-bold rounded-full">
-                  {studentProgress.length} Enrolled
-                </span>
-              </div>
+              {/* BADGE GALLERY GRID */}
+              {filteredBadges.length > 0 ? (
+                <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {filteredBadges.map((badge) => {
+                    const subjectTitle =
+                      badge.course_name ||
+                      (badge.meta as { course_name?: string })?.course_name ||
+                      "Curriculum Lab";
+                    const practicalTitle =
+                      badge.practical_title ||
+                      (badge.meta as { practical_title?: string })?.practical_title ||
+                      badge.name ||
+                      "Practical Challenge";
+                    const unlockedDate = new Date(badge.earned_at).toLocaleDateString("en-US", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    });
 
-              {studentProgress.length > 0 ? (
-                <div className="mt-6 space-y-4">
-                  {studentProgress.map((prog) => (
-                    <div
-                      key={prog.course_id}
-                      className="lux-card p-5 border border-[#E4DDD2] dark:border-[#2D2D2D] bg-[#FFFCF6] dark:bg-[#1B1B1B] rounded-2xl"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="badge-primary px-2.5 py-0.5 text-[10px] font-bold rounded-md">
-                              {prog.course_code || "COURSE"}
-                            </span>
-                            <h3 className="text-sm font-extrabold text-[#191919] dark:text-[#F7F4EF]">
-                              {prog.course_name}
-                            </h3>
-                          </div>
-                          <p className="mt-1 text-xs text-[#706C65] dark:text-[#A5A29C]">
-                            Completed:{" "}
-                            <span className="font-bold text-[#191919] dark:text-[#F7F4EF]">
-                              {prog.completed_required} of {prog.total_required}
-                            </span>{" "}
-                            required practical challenges · Badges Earned:{" "}
-                            <span className="font-bold text-[#FF6B2C] dark:text-[#FFB547]">{prog.badges_earned}</span>
-                          </p>
-                        </div>
-
-                        {/* Status Badge */}
-                        <div>
-                          {prog.certificate_status === "ISSUED" && (
-                            <span className="badge-success px-3 py-1 text-xs font-bold rounded-full">
-                              CERTIFICATE ISSUED ✓
-                            </span>
-                          )}
-                          {prog.certificate_status === "PENDING_APPROVAL" && (
-                            <span className="badge-warning px-3 py-1 text-xs font-bold rounded-full">
-                              FACULTY APPROVAL PENDING
-                            </span>
-                          )}
-                          {prog.certificate_status === "REJECTED" && (
-                            <span className="badge-danger px-3 py-1 text-xs font-bold rounded-full">
-                              REVISION REQUESTED
-                            </span>
-                          )}
-                          {prog.certificate_status === "ELIGIBLE" && (
-                            <span className="badge-success px-3 py-1 text-xs font-bold rounded-full">
-                              100% COMPLETED · ELIGIBLE
-                            </span>
-                          )}
-                          {prog.certificate_status === "NOT_ELIGIBLE" && (
-                            <span className="bg-[#F3EFEA] dark:bg-[#252525] text-[#706C65] dark:text-[#A5A29C] px-3 py-1 text-xs font-bold rounded-full border border-[#E4DDD2] dark:border-[#2D2D2D]">
-                              {prog.remaining_required} PRACTICAL(S) REMAINING
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Progress Bar */}
-                      <div className="mt-4">
-                        <div className="flex justify-between text-xs font-bold mb-1">
-                          <span className="text-[#706C65] dark:text-[#A5A29C]">Curriculum Completion</span>
-                          <span className="text-[#FF6B2C] dark:text-[#FFB547]">{prog.completion_percentage}%</span>
-                        </div>
-                        <div className="h-2 w-full rounded-full bg-[#F3EFEA] dark:bg-[#252525] border border-[#E4DDD2] dark:border-[#2D2D2D] overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-500"
-                            style={{
-                              background: "var(--primary-gradient)",
-                              width: `${Math.min(100, Math.max(0, prog.completion_percentage))}%`,
-                            }}
+                    return (
+                      <div
+                        key={badge.id}
+                        onClick={() => setSelectedBadgeForModal(badge)}
+                        className="group relative rounded-3xl bg-[#121214] border border-zinc-800/80 p-4 shadow-lg hover:shadow-2xl hover:border-orange-500/50 hover:-translate-y-1 transition duration-300 flex flex-col justify-between cursor-pointer"
+                      >
+                        {/* 1:1 Badge Component Display */}
+                        <div className="relative w-full aspect-square flex items-center justify-center p-1">
+                          <BadgeRenderer
+                            subjectName={subjectTitle}
+                            practicalTitle={practicalTitle}
+                            courseCode={badge.course_code || (badge.meta as { course_code?: string })?.course_code}
+                            earnedAt={badge.earned_at}
+                            className="w-full h-full transform transition duration-300 group-hover:scale-[1.02]"
                           />
                         </div>
-                      </div>
 
-                      {/* Action / Feedback row */}
-                      {prog.certificate_status === "REJECTED" && prog.rejection_note && (
-                        <div className="mt-3 rounded-xl p-3 bg-rose-500/10 border border-rose-500/30 text-xs text-rose-800 dark:text-rose-300">
-                          <span className="font-bold">Faculty Revision Note:</span>{" "}
-                          {prog.rejection_note}
+                        {/* Card Footer Details */}
+                        <div className="mt-3.5 pt-3 border-t border-zinc-800/70 flex items-center justify-between text-xs">
+                          <div className="min-w-0 flex-1 pr-2">
+                            <div className="text-[11px] font-mono text-[#FF7A18] font-semibold truncate">
+                              {unlockedDate}
+                            </div>
+                            <div className="text-zinc-400 text-[10px] truncate">
+                              Automated Test Verified
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const clean = practicalTitle.toLowerCase().replace(/[^a-z0-9]/g, "-");
+                                void downloadBadgePng(badge, `credlab-badge-${clean}.png`);
+                              }}
+                              title="Download Badge PNG"
+                              className="p-2 rounded-xl bg-zinc-800 text-zinc-300 hover:text-white hover:bg-orange-500/20 hover:text-[#FF7A18] transition cursor-pointer"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedBadgeForModal(badge);
+                              }}
+                              title="Inspect Badge"
+                              className="p-2 rounded-xl bg-orange-500/10 text-[#FF7A18] hover:bg-orange-500 hover:text-white transition cursor-pointer"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
-                      )}
-
-                      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#E4DDD2] dark:border-[#2D2D2D]">
-                        <p className="text-[11px] text-[#706C65] dark:text-[#A5A29C]">
-                          {prog.certificate_status === "ISSUED"
-                            ? "Subject diploma cryptographically active in your records."
-                            : prog.certificate_status === "ELIGIBLE"
-                            ? "All requirements fulfilled. You can now request your subject diploma."
-                            : prog.certificate_status === "REJECTED"
-                            ? "Please review faculty feedback before re-submitting request."
-                            : "Solve all required practicals with 100% score to unlock certification."}
-                        </p>
-
-                        {(prog.certificate_status === "ELIGIBLE" ||
-                          prog.certificate_status === "REJECTED") && (
-                          <button
-                            onClick={() => void handleRequestSubjectCert(prog.course_id)}
-                            disabled={requestingCertCourseId === prog.course_id}
-                            className="btn-primary !py-2 !px-4 !text-xs font-bold"
-                          >
-                            {requestingCertCourseId === prog.course_id
-                              ? "Submitting..."
-                              : prog.certificate_status === "REJECTED"
-                              ? "Re-Request Subject Certificate"
-                              : "Request Subject Certificate"}
-                          </button>
-                        )}
-
-                        {prog.certificate_status === "ISSUED" && prog.certificate_id && (
-                          <Link
-                            href={`/certificates/${prog.certificate_id}`}
-                            className="btn-secondary !py-2 !px-4 !text-xs font-bold"
-                          >
-                            View Diploma →
-                          </Link>
-                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
+                </div>
+              ) : earnedBadges.length > 0 ? (
+                <div className="mt-8 py-12 text-center rounded-2xl bg-[#F7F4EF] dark:bg-[#1A1A1D] border border-dashed border-[#E4DDD2] dark:border-[#2D2D2D] p-6">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-800 text-zinc-400 mb-3">
+                    <Search className="w-6 h-6" />
+                  </div>
+                  <h3 className="font-extrabold text-sm text-[#191919] dark:text-[#F7F4EF]">
+                    No badges match your search or filter
+                  </h3>
+                  <p className="mt-1 text-xs text-[#706C65] dark:text-[#A5A29C]">
+                    Try clearing your search query or choosing another subject filter.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setBadgeSearchQuery("");
+                      setBadgeSubjectFilter("ALL");
+                    }}
+                    className="mt-4 px-4 py-2 rounded-xl text-xs font-bold bg-[#FF7A18] text-white hover:brightness-110 transition cursor-pointer"
+                  >
+                    Reset Filters
+                  </button>
                 </div>
               ) : (
-                <div className="mt-6 text-center py-8 text-xs text-[#706C65] dark:text-[#A5A29C] rounded-xl bg-[#FFFCF6] dark:bg-[#1B1B1B] border border-dashed border-[#E4DDD2] dark:border-[#2D2D2D]">
-                  No active enrolled subjects found for your profile. Contact your department administrator.
+                <div className="mt-8 py-12 text-center rounded-3xl bg-[#F7F4EF] dark:bg-[#141416] border border-dashed border-[#E4DDD2] dark:border-[#2D2D2D] p-8">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-orange-500/10 text-[#FF7A18] mb-4">
+                    <Award className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-base font-extrabold text-[#191919] dark:text-[#F7F4EF]">
+                    No Achievement Badges Unlocked Yet
+                  </h3>
+                  <p className="mt-1.5 max-w-md mx-auto text-xs text-[#706C65] dark:text-[#A5A29C]">
+                    Badges are automatically awarded whenever you pass all unit tests with passing score on any curriculum practical.
+                  </p>
+                  <button
+                    onClick={() => setTab("My Labs")}
+                    className="mt-5 btn-primary !py-2.5 !px-5 !text-xs font-bold inline-flex items-center gap-2"
+                  >
+                    <span>Go to My Labs &amp; Solve Practicals</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
                 </div>
               )}
-            </div>
+            </section>
+
+            {/* ══════════════════════════════════════════════════════════════════════ */}
+            {/* SECTION 2: SUBJECT COMPLETION CERTIFICATIONS (APPEARS BELOW BADGES)   */}
+            {/* ══════════════════════════════════════════════════════════════════════ */}
+            <section className="lux-card p-6 sm:p-8 rounded-3xl border border-[#E4DDD2] dark:border-[#2D2D2D] bg-[#FFFCF6] dark:bg-[#161618] shadow-sm space-y-8">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[#E4DDD2] dark:border-[#2D2D2D]">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500">
+                      <ShieldCheck className="w-5 h-5" />
+                    </span>
+                    <h2 className="text-xl font-extrabold text-[#191919] dark:text-[#F7F4EF] tracking-tight">
+                      Curriculum Subject Certifications
+                    </h2>
+                  </div>
+                  <p className="mt-1 text-xs text-[#706C65] dark:text-[#A5A29C]">
+                    Official degree-aligned completion credentials cryptographically signed with Ed25519 institutional keys.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="badge-success px-3.5 py-1 text-xs font-extrabold rounded-full">
+                    {studentProgress.filter((s) => s.certificate_status === "ISSUED").length} of {studentProgress.length} Certified
+                  </span>
+                </div>
+              </div>
+
+              {/* 2A: ISSUED SUBJECT CERTIFICATES PREVIEWS (IF ANY) */}
+              {certificateData.certificates.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-[#FF7A18] mb-4 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4" />
+                    <span>Issued Subject Certificates</span>
+                  </h3>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {certificateData.certificates.map((cert) => {
+                      const courseName = cert.course_name || cert.lab_title || "Curriculum Subject";
+                      const courseCode = cert.course_code || "";
+
+                      return (
+                        <div
+                          key={cert.id}
+                          className="rounded-3xl bg-[#121214] border border-zinc-800 p-5 shadow-xl flex flex-col justify-between group hover:border-orange-500/40 transition duration-300"
+                        >
+                          {/* Certificate Landscape Renderer Preview */}
+                          <div
+                            onClick={() =>
+                              setSelectedCertForModal({
+                                id: cert.id,
+                                student_name: user?.name || "Student",
+                                course_name: courseName,
+                                course_code: courseCode,
+                                completed_practicals_count: cert.completed_practicals_count || 8,
+                                total_practicals_count: cert.total_practicals_count || 8,
+                                issued_at: cert.issued_at,
+                                completed_at: cert.completed_at || cert.issued_at,
+                              })
+                            }
+                            className="rounded-2xl overflow-hidden shadow-md cursor-pointer transform transition duration-300 group-hover:scale-[1.01]"
+                          >
+                            <CertificateRenderer
+                              certificateId={cert.id}
+                              studentName={user?.name || "Student Name"}
+                              courseName={courseName}
+                              courseCode={courseCode}
+                              completedPracticalsCount={cert.completed_practicals_count || 8}
+                              totalPracticalsCount={cert.total_practicals_count || 8}
+                              completedAt={cert.completed_at || cert.issued_at}
+                              issuedAt={cert.issued_at}
+                              status="Verified & Issued"
+                            />
+                          </div>
+
+                          {/* Card Footer Details */}
+                          <div className="mt-4 pt-3 border-t border-zinc-800/80 flex flex-wrap items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <span className="badge-success px-2.5 py-0.5 text-[10px] font-bold rounded-md">
+                                ACTIVE ED25519 DIPLOMA ✓
+                              </span>
+                              <div className="font-mono text-[10px] text-zinc-400 mt-1 truncate">
+                                Issued: {new Date(cert.issued_at).toLocaleDateString()}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() =>
+                                  setSelectedCertForModal({
+                                    id: cert.id,
+                                    student_name: user?.name || "Student",
+                                    course_name: courseName,
+                                    course_code: courseCode,
+                                    completed_practicals_count: cert.completed_practicals_count || 8,
+                                    total_practicals_count: cert.total_practicals_count || 8,
+                                    issued_at: cert.issued_at,
+                                    completed_at: cert.completed_at || cert.issued_at,
+                                  })
+                                }
+                                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-[#FF7A18] to-[#E65100] text-white hover:brightness-110 shadow-md transition flex items-center gap-1.5 cursor-pointer"
+                              >
+                                <Download className="w-3.5 h-3.5" />
+                                <span>Preview &amp; PDF</span>
+                              </button>
+                              <Link
+                                href={`/certificates/${cert.id}`}
+                                className="px-3 py-2 rounded-xl text-xs font-semibold bg-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-700 transition"
+                              >
+                                Verify
+                              </Link>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* 2B: ENROLLED SUBJECT PROGRESS & CERTIFICATE STATUS */}
+              <div>
+                <h3 className="text-sm font-bold uppercase tracking-wider text-[#706C65] dark:text-[#A5A29C] mb-4">
+                  Enrolled Subjects &amp; Practical Completion
+                </h3>
+
+                {studentProgress.length > 0 ? (
+                  <div className="space-y-4">
+                    {studentProgress.map((prog) => (
+                      <div
+                        key={prog.course_id}
+                        className="lux-card p-5 sm:p-6 border border-[#E4DDD2] dark:border-[#2D2D2D] bg-[#FFFCF6] dark:bg-[#1A1A1D] rounded-2xl transition hover:shadow-md"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                          <div className="flex-1 min-w-[240px]">
+                            <div className="flex items-center gap-2">
+                              <span className="badge-primary px-2.5 py-0.5 text-[10px] font-extrabold rounded-md">
+                                {prog.course_code || "SUBJECT"}
+                              </span>
+                              <h4 className="text-base font-extrabold text-[#191919] dark:text-[#F7F4EF]">
+                                {prog.course_name}
+                              </h4>
+                            </div>
+
+                            <p className="mt-2 text-xs text-[#706C65] dark:text-[#A5A29C]">
+                              Required Challenges:{" "}
+                              <span className="font-extrabold text-[#191919] dark:text-[#F7F4EF]">
+                                {prog.completed_required} of {prog.total_required} completed
+                              </span>{" "}
+                              · Achievement Badges Earned:{" "}
+                              <span className="font-extrabold text-[#FF6B2C] dark:text-[#FFB547]">
+                                {prog.badges_earned}
+                              </span>
+                            </p>
+                          </div>
+
+                          {/* Dynamic Status Pill */}
+                          <div className="shrink-0">
+                            {prog.certificate_status === "ISSUED" && (
+                              <span className="badge-success px-3.5 py-1 text-xs font-bold rounded-full">
+                                CERTIFICATE ISSUED ✓
+                              </span>
+                            )}
+                            {prog.certificate_status === "PENDING_APPROVAL" && (
+                              <span className="badge-warning px-3.5 py-1 text-xs font-bold rounded-full animate-pulse">
+                                AWAITING FACULTY APPROVAL
+                              </span>
+                            )}
+                            {prog.certificate_status === "REJECTED" && (
+                              <span className="badge-danger px-3.5 py-1 text-xs font-bold rounded-full">
+                                REVISION REQUESTED
+                              </span>
+                            )}
+                            {prog.certificate_status === "ELIGIBLE" && (
+                              <span className="px-3.5 py-1 text-xs font-extrabold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                                100% COMPLETED · ELIGIBLE
+                              </span>
+                            )}
+                            {prog.certificate_status === "NOT_ELIGIBLE" && (
+                              <span className="bg-[#F3EFEA] dark:bg-[#252525] text-[#706C65] dark:text-[#A5A29C] px-3.5 py-1 text-xs font-bold rounded-full border border-[#E4DDD2] dark:border-[#2D2D2D]">
+                                {prog.remaining_required} PRACTICAL(S) REMAINING
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="mt-4">
+                          <div className="flex justify-between text-xs font-bold mb-1.5">
+                            <span className="text-[#706C65] dark:text-[#A5A29C]">Curriculum Completion</span>
+                            <span className="text-[#FF6B2C] dark:text-[#FFB547] font-mono">
+                              {prog.completion_percentage}%
+                            </span>
+                          </div>
+                          <div className="h-2.5 w-full rounded-full bg-[#EEE8DE] dark:bg-[#252525] border border-[#E4DDD2] dark:border-[#2D2D2D] overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all duration-700 ease-out"
+                              style={{
+                                background: "linear-gradient(90deg, #FF7A18, #E65100)",
+                                width: `${Math.min(100, Math.max(0, prog.completion_percentage))}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Faculty Feedback Note if Rejected */}
+                        {prog.certificate_status === "REJECTED" && prog.rejection_note && (
+                          <div className="mt-3.5 rounded-xl p-3.5 bg-rose-500/10 border border-rose-500/30 text-xs text-rose-800 dark:text-rose-300">
+                            <span className="font-extrabold">Faculty Revision Note:</span>{" "}
+                            {prog.rejection_note}
+                          </div>
+                        )}
+
+                        {/* Action Row */}
+                        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-3.5 border-t border-[#E4DDD2] dark:border-[#2D2D2D]">
+                          <p className="text-[11px] text-[#706C65] dark:text-[#A5A29C]">
+                            {prog.certificate_status === "ISSUED"
+                              ? "Official subject diploma is active and verifiable in your academic portfolio."
+                              : prog.certificate_status === "ELIGIBLE"
+                              ? "All required challenges passed! You may now request faculty certification."
+                              : prog.certificate_status === "PENDING_APPROVAL"
+                              ? "Certificate request is in the faculty verification queue."
+                              : prog.certificate_status === "REJECTED"
+                              ? "Please review faculty feedback and resolve outstanding items."
+                              : "Solve and pass all required practical challenges with passing score to unlock certification."}
+                          </p>
+
+                          {(prog.certificate_status === "ELIGIBLE" || prog.certificate_status === "REJECTED") && (
+                            <button
+                              onClick={() => void handleRequestSubjectCert(prog.course_id)}
+                              disabled={requestingCertCourseId === prog.course_id}
+                              className="btn-primary !py-2 !px-4 !text-xs font-bold flex items-center gap-1.5"
+                            >
+                              <ShieldCheck className="w-3.5 h-3.5" />
+                              <span>
+                                {requestingCertCourseId === prog.course_id
+                                  ? "Submitting..."
+                                  : prog.certificate_status === "REJECTED"
+                                  ? "Re-Request Subject Certificate"
+                                  : "Request Subject Certificate"}
+                              </span>
+                            </button>
+                          )}
+
+                          {prog.certificate_status === "ISSUED" && prog.certificate_id && (
+                            <Link
+                              href={`/certificates/${prog.certificate_id}`}
+                              className="btn-secondary !py-2 !px-4 !text-xs font-bold inline-flex items-center gap-1.5"
+                            >
+                              <span>View Certificate</span>
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </Link>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-4 text-center py-8 text-xs text-[#706C65] dark:text-[#A5A29C] rounded-2xl bg-[#FFFCF6] dark:bg-[#1A1A1D] border border-dashed border-[#E4DDD2] dark:border-[#2D2D2D]">
+                    No enrolled curriculum subjects found for your profile.
+                  </div>
+                )}
+              </div>
+            </section>
           </div>
         )}
 
@@ -2437,6 +2792,22 @@ export default function StudentDashboardPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ───────────────── BADGE INSPECTION & DOWNLOAD MODAL ───────────────── */}
+      {selectedBadgeForModal && (
+        <BadgeModal
+          badge={selectedBadgeForModal}
+          onClose={() => setSelectedBadgeForModal(null)}
+        />
+      )}
+
+      {/* ───────────────── CERTIFICATE INSPECTION & PDF EXPORT MODAL ───────────────── */}
+      {selectedCertForModal && (
+        <CertificateModal
+          certificate={selectedCertForModal}
+          onClose={() => setSelectedCertForModal(null)}
+        />
       )}
     </main>
   );

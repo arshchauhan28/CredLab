@@ -10,12 +10,14 @@ from sqlalchemy import (
     Column,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     JSON,
     String,
     Text,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.orm import relationship
 
@@ -96,6 +98,14 @@ class CompletionCertificate(Base):
 
     __table_args__ = (
         UniqueConstraint("student_id", "practical_id", name="uq_certificate_student_practical"),
+        Index(
+            "uq_active_subject_certificate",
+            "student_id",
+            "course_id",
+            unique=True,
+            postgresql_where=text("certificate_type = 'SUBJECT' AND status = 'ACTIVE'"),
+            sqlite_where=text("certificate_type = 'SUBJECT' AND status = 'ACTIVE'"),
+        ),
     )
 
     # Relationships

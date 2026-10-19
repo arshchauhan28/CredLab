@@ -584,14 +584,7 @@ class CertificateService:
                 .filter(
                     Submission.user_id == student.id,
                     Submission.practical_id == prec.id,
-                    Submission.status.notin_([
-                        SubmissionStatus.PENDING,
-                        SubmissionStatus.RUNNING,
-                        SubmissionStatus.COMPILATION_ERROR,
-                        SubmissionStatus.RUNTIME_ERROR,
-                        SubmissionStatus.TIME_LIMIT_EXCEEDED,
-                        SubmissionStatus.INTERNAL_ERROR,
-                    ]),
+                    Submission.status == SubmissionStatus.ACCEPTED,
                     Submission.score >= prec.passing_threshold,
                 )
                 .first()
@@ -612,14 +605,7 @@ class CertificateService:
             .filter(
                 Submission.user_id == student.id,
                 Submission.practical_id == practical.id,
-                Submission.status.notin_([
-                    SubmissionStatus.PENDING,
-                    SubmissionStatus.RUNNING,
-                    SubmissionStatus.COMPILATION_ERROR,
-                    SubmissionStatus.RUNTIME_ERROR,
-                    SubmissionStatus.TIME_LIMIT_EXCEEDED,
-                    SubmissionStatus.INTERNAL_ERROR,
-                ]),
+                Submission.status == SubmissionStatus.ACCEPTED,
                 Submission.score >= practical.passing_threshold,
             )
             .order_by(Submission.score.desc(), Submission.created_at.desc())
@@ -742,71 +728,35 @@ class CertificateService:
     ) -> CompletionCertificate:
         """
         Validates academic completion across all required practicals in a course
-        and issues a digitally signed subject-level completion certificate (Part 11).
+        using centralized eligibility and issues a digitally signed subject-level completion certificate.
         """
-        # 1. Verify student enrollment
-        enrollment = (
-            db.query(CourseEnrollment)
-            .filter(
-                CourseEnrollment.course_id == course.id,
-                CourseEnrollment.student_id == student.id,
-                CourseEnrollment.status == "ENROLLED",
-            )
-            .first()
-        )
-        if not enrollment:
+        from app.services.certificate_eligibility import get_subject_certificate_eligibility
+
+        # 1. Authoritative eligibility validation
+        eligibility = get_subject_certificate_eligibility(db, student.id, course.id)
+
+        if not eligibility.is_enrolled:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Student is not enrolled in this course.",
             )
 
         # 2. Check for existing active subject certificate (idempotent)
-        existing = (
-            db.query(CompletionCertificate)
-            .filter(
-                CompletionCertificate.student_id == student.id,
-                CompletionCertificate.course_id == course.id,
-                CompletionCertificate.certificate_type == "SUBJECT",
-                CompletionCertificate.status == "ACTIVE",
-            )
-            .first()
-        )
-        if existing:
-            return existing
-
-        # 3. Verify that all required practicals in the course have passing submissions
-        lab_ids = [l.id for l in course.labs]
-        if not lab_ids:
-            raise HTTPException(status_code=400, detail="This course has no practical laboratories.")
-
-        required_practicals = (
-            db.query(LabPractical)
-            .filter(
-                LabPractical.lab_id.in_(lab_ids),
-                LabPractical.is_required.is_(True),
-            )
-            .all()
-        )
-        if not required_practicals:
-            raise HTTPException(status_code=400, detail="This course has no required practicals.")
-
-        for req in required_practicals:
-            passing = (
-                db.query(Submission)
-                .filter(
-                    Submission.user_id == student.id,
-                    Submission.practical_id == req.id,
-                    Submission.status == SubmissionStatus.ACCEPTED,
-                    Submission.score >= req.passing_threshold,
-                )
+        if eligibility.certificate_status == "ISSUED" and eligibility.certificate_id:
+            existing = (
+                db.query(CompletionCertificate)
+                .filter(CompletionCertificate.id == eligibility.certificate_id)
                 .first()
             )
-            if not passing:
-                prac_name = getattr(req, "effective_title", None) or getattr(req, "title", None) or (req.question.title if getattr(req, "question", None) else str(req.id))
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Ineligible: Required practical '{prac_name}' has not been passed.",
-                )
+            if existing:
+                return existing
+
+        # 3. Verify eligibility
+        if not eligibility.is_eligible:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Ineligible: {eligibility.eligibility_reason}",
+            )
 
         # 4. Sign and issue
         key_id, private_key = self.get_active_signing_key()
@@ -833,7 +783,8 @@ class CertificateService:
             "course_code": course.code or course.name,
             "course_name": course.name,
             "certificate_type": "SUBJECT",
-            "completed_practicals_count": len(required_practicals),
+            "completed_practicals_count": eligibility.completed_required,
+            "total_practicals_count": eligibility.total_required,
             "completed_at": format_utc_timestamp(issued_at_dt),
             "issued_at": format_utc_timestamp(issued_at_dt),
         }

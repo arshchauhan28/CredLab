@@ -27,8 +27,11 @@ async function proxyRequest(
     .join("/")}${request.nextUrl.search}`;
 
   const sessionCookie = request.cookies.get("scp_session")?.value;
+  const isPublicCertRoute =
+    apiPath[0] === "certificates" &&
+    (apiPath[apiPath.length - 1] === "public" || apiPath[1] === "verify");
 
-  if (!sessionCookie) {
+  if (!sessionCookie && !isPublicCertRoute) {
     return NextResponse.json(
       { detail: "Authentication required." },
       { status: 401 },
@@ -39,7 +42,9 @@ async function proxyRequest(
   const contentType = request.headers.get("content-type");
 
   if (contentType) headers.set("content-type", contentType);
-  headers.set("Authorization", `Bearer ${sessionCookie}`);
+  if (sessionCookie) {
+    headers.set("Authorization", `Bearer ${sessionCookie}`);
+  }
   headers.set("Accept", request.headers.get("accept") ?? "application/json");
 
   const method = request.method;

@@ -58,20 +58,6 @@ type Submission = {
   created_at: string;
 };
 
-type Approval = {
-  id: number;
-  student_id: number;
-  student_name: string;
-  student_email: string;
-  lab_id: number;
-  lab_title: string;
-  course_id: number;
-  practical_id: number;
-  submission_id: number;
-  status: string;
-  requested_at: string;
-  review_note?: string | null;
-};
 
 type SubjectApproval = {
   id: number;
@@ -83,6 +69,10 @@ type SubjectApproval = {
   course_name: string;
   course_code?: string;
   total_required: number;
+  completed_required?: number;
+  remaining_required?: number;
+  incomplete_practicals?: string[];
+  is_eligible?: boolean;
   status: string;
   review_note?: string | null;
   requested_at: string;
@@ -144,12 +134,9 @@ export default function FacultyDashboardPage() {
   const [showAdvancedLabs, setShowAdvancedLabs] = useState(false);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
 
-  // Certificates state
-  const [certTab, setCertTab] = useState<"SUBJECT" | "LAB">("SUBJECT");
+  // Certificates state (Unified Curriculum Subject Certificates)
   const [subjectApprovals, setSubjectApprovals] = useState<SubjectApproval[]>([]);
   const [subjectReviewNotes, setSubjectReviewNotes] = useState<Record<number, string>>({});
-  const [approvals, setApprovals] = useState<Approval[]>([]);
-  const [reviewNotes, setReviewNotes] = useState<Record<number, string>>({});
 
   // Practical Deletion Modal
   const [deletingPractical, setDeletingPractical] = useState<Practical | null>(null);
@@ -192,12 +179,9 @@ export default function FacultyDashboardPage() {
   const refresh = useCallback(async () => {
     try {
       setBusy(true);
-      const [cList, subList, appList, subjAppList] = await Promise.all([
+      const [cList, subList, subjAppList] = await Promise.all([
         api<Course[]>("courses"),
         api<{ items: Submission[] }>("submissions?page=1&page_size=50").catch(() => ({
-          items: [],
-        })),
-        api<{ items: Approval[] }>("certificates/approvals").catch(() => ({
           items: [],
         })),
         api<{ items: SubjectApproval[] }>("certificates/subject-approvals").catch(() => ({
@@ -207,7 +191,6 @@ export default function FacultyDashboardPage() {
 
       setCourses(cList);
       setSubmissions(subList.items ?? []);
-      setApprovals(appList.items ?? []);
       setSubjectApprovals(subjAppList.items ?? []);
 
       let activeCourseId = courseId;
@@ -400,30 +383,6 @@ export default function FacultyDashboardPage() {
     }
   }
 
-  // Lab Certificate Review (Legacy / Lab level)
-  async function reviewCertificate(requestId: number, action: "APPROVE" | "REJECT") {
-    setBusy(true);
-    try {
-      await api(`certificates/approvals/${requestId}`, {
-        method: "POST",
-        body: JSON.stringify({
-          action,
-          note: reviewNotes[requestId] || "",
-          review_note: reviewNotes[requestId] || "",
-        }),
-      });
-      setNotice(
-        action === "APPROVE"
-          ? "Lab certificate approved and signed with Ed25519 key!"
-          : "Certificate request rejected.",
-      );
-      await refresh();
-    } catch (cause) {
-      setNotice(cause instanceof Error ? cause.message : "Review action failed.");
-    } finally {
-      setBusy(false);
-    }
-  }
 
   // Advanced: Create Lab Module
   async function createLab(e: FormEvent) {
@@ -518,8 +477,7 @@ export default function FacultyDashboardPage() {
   ];
 
   const pendingSubjectApprovals = subjectApprovals.filter((s) => s.status === "PENDING");
-  const pendingLabApprovals = approvals.filter((a) => a.status === "PENDING");
-  const totalPendingCertificates = pendingSubjectApprovals.length + pendingLabApprovals.length;
+  const totalPendingCertificates = pendingSubjectApprovals.length;
 
   const currentCourse = courses.find((c) => c.id === courseId);
 
@@ -703,15 +661,11 @@ export default function FacultyDashboardPage() {
                     Certificate Approvals
                   </h3>
                   <p className="mt-1 text-xs text-[#706C65] dark:text-[#A5A29C]">
-                    {totalPendingCertificates} certificate request(s) awaiting your cryptographic
-                    approval ({pendingSubjectApprovals.length} subject, {pendingLabApprovals.length} lab).
+                    {totalPendingCertificates} subject completion certificate request(s) awaiting your cryptographic review and signature.
                   </p>
                   <div className="mt-5 flex gap-3">
                     <button
-                      onClick={() => {
-                        setCertTab("SUBJECT");
-                        setSection("Certificates");
-                      }}
+                      onClick={() => setSection("Certificates")}
                       className="btn-primary !py-2.5 !px-5 !text-xs font-bold"
                     >
                       Review Approvals →
@@ -1225,206 +1179,107 @@ export default function FacultyDashboardPage() {
                   </p>
                 </div>
 
-                {/* Sub-tabs: Subject Certificates vs Lab Module Certificates */}
-                <div className="flex rounded-xl bg-[#EEE8DE]/60 dark:bg-[#181818] p-1 border border-[#E4DDD2] dark:border-[#2D2D2D]">
-                  <button
-                    onClick={() => setCertTab("SUBJECT")}
-                    className={`rounded-lg px-4 py-1.5 text-xs font-bold transition ${
-                      certTab === "SUBJECT"
-                        ? "bg-[#FF6B2C] text-white shadow-xs"
-                        : "text-[#706C65] dark:text-[#A5A29C] hover:text-[#D94F16] dark:hover:text-[#FF6B2C]"
-                    }`}
-                  >
-                    Subject Certificates ({pendingSubjectApprovals.length})
-                  </button>
-                  <button
-                    onClick={() => setCertTab("LAB")}
-                    className={`rounded-lg px-4 py-1.5 text-xs font-bold transition ${
-                      certTab === "LAB"
-                        ? "bg-[#FF6B2C] text-white shadow-xs"
-                        : "text-[#706C65] dark:text-[#A5A29C] hover:text-[#D94F16] dark:hover:text-[#FF6B2C]"
-                    }`}
-                  >
-                    Lab Module Certificates ({pendingLabApprovals.length})
-                  </button>
+                <div className="flex items-center gap-2">
+                  <span className="badge-primary px-3 py-1 text-xs font-bold rounded-full">
+                    {pendingSubjectApprovals.length} Pending Review
+                  </span>
                 </div>
               </div>
 
-              {/* SUBJECT CERTIFICATES (PART 11) */}
-              {certTab === "SUBJECT" && (
-                <div className="mt-6">
-                  {subjectApprovals.length > 0 ? (
-                    <div className="space-y-4">
-                      {subjectApprovals.map((a) => (
-                        <article
-                          key={a.id}
-                          className="lux-card p-5 bg-[#FFFCF6] dark:bg-[#1B1B1B] border border-[#E4DDD2] dark:border-[#2D2D2D]"
-                        >
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="badge-primary px-2.5 py-0.5 text-[10px] font-bold rounded-md">
-                                  {a.course_code || "SUBJECT"}
-                                </span>
-                                <h3 className="text-sm font-extrabold text-[#191919] dark:text-[#F7F4EF]">
-                                  {a.course_name}
-                                </h3>
-                              </div>
-                              <p className="mt-1.5 text-xs text-[#706C65] dark:text-[#A5A29C]">
-                                Candidate:{" "}
-                                <span className="text-[#191919] dark:text-[#F7F4EF] font-bold">{a.student_name}</span> (
-                                {a.student_email}) · Enrollment:{" "}
-                                <span className="font-mono text-[#191919] dark:text-[#F7F4EF]">
-                                  {a.enrollment_number || `ID #${a.student_id}`}
-                                </span>
-                              </p>
-                              <p className="mt-1 text-[11px] text-[#8C867E] dark:text-[#8E8982]">
-                                Completed Practicals:{" "}
-                                <span className="font-bold text-[#D94F16] dark:text-[#FF6B2C]">
-                                  {a.total_required} / {a.total_required} (100% verified)
-                                </span>{" "}
-                                · Requested: {new Date(a.requested_at).toLocaleString()}
-                              </p>
-                            </div>
-
-                            <span
-                              className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                                a.status === "PENDING"
-                                  ? "badge-warning"
-                                  : a.status === "APPROVED"
-                                  ? "badge-success"
-                                  : "badge-danger"
-                              }`}
-                            >
-                              {a.status}
-                            </span>
-                          </div>
-
-                          {a.status === "PENDING" && (
-                            <div className="mt-4 pt-3 border-t border-[#E4DDD2] dark:border-[#2D2D2D]">
-                              <input
-                                value={subjectReviewNotes[a.id] || ""}
-                                onChange={(e) =>
-                                  setSubjectReviewNotes((x) => ({ ...x, [a.id]: e.target.value }))
-                                }
-                                placeholder="Faculty review note (required if rejecting)..."
-                                className="input-field text-xs mb-3"
-                              />
-                              <div className="flex gap-2">
-                                <button
-                                  disabled={busy}
-                                  onClick={() => void reviewSubjectCertificate(a.id, "APPROVE")}
-                                  className="btn-primary !py-2 !px-4 !text-xs font-bold"
-                                >
-                                  Approve & Issue Subject Certificate (Ed25519)
-                                </button>
-                                <button
-                                  disabled={busy}
-                                  onClick={() => void reviewSubjectCertificate(a.id, "REJECT")}
-                                  className="btn-secondary !py-2 !px-4 !text-xs font-bold text-rose-700 dark:text-rose-400"
-                                >
-                                  Reject Request
-                                </button>
-                              </div>
-                            </div>
-                          )}
-
-                          {a.status !== "PENDING" && a.review_note && (
-                            <div className="mt-3 pt-2 border-t border-[#E4DDD2] dark:border-[#2D2D2D] text-xs text-[#706C65] dark:text-[#A5A29C]">
-                              <span className="font-bold text-[#191919] dark:text-[#F7F4EF]">Review Note:</span>{" "}
-                              {a.review_note}
-                            </div>
-                          )}
-                        </article>
-                      ))}
-                    </div>
-                  ) : (
-                    <Empty
-                      title="No Subject Certificate Requests"
-                      text="When students complete 100% of the required practicals for an assigned subject and request verification, their diploma requests appear here."
-                    />
-                  )}
-                </div>
-              )}
-
-              {/* LAB MODULE CERTIFICATES (LEGACY) */}
-              {certTab === "LAB" && (
-                <div className="mt-6">
-                  {approvals.length > 0 ? (
-                    <div className="space-y-4">
-                      {approvals.map((a) => (
-                        <article
-                          key={a.id}
-                          className="lux-card p-5 bg-[#FFFCF6] dark:bg-[#1B1B1B] border border-[#E4DDD2] dark:border-[#2D2D2D]"
-                        >
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div>
+              {/* UNIFIED SUBJECT COMPLETION CERTIFICATE APPROVALS */}
+              <div className="mt-6">
+                {subjectApprovals.length > 0 ? (
+                  <div className="space-y-4">
+                    {subjectApprovals.map((a) => (
+                      <article
+                        key={a.id}
+                        className="lux-card p-5 bg-[#FFFCF6] dark:bg-[#1B1B1B] border border-[#E4DDD2] dark:border-[#2D2D2D]"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="badge-primary px-2.5 py-0.5 text-[10px] font-bold rounded-md">
+                                {a.course_code || "SUBJECT"}
+                              </span>
                               <h3 className="text-sm font-extrabold text-[#191919] dark:text-[#F7F4EF]">
-                                {a.lab_title}
+                                {a.course_name}
                               </h3>
-                              <p className="mt-1 text-xs text-[#706C65] dark:text-[#A5A29C]">
-                                Candidate:{" "}
-                                <span className="text-[#191919] dark:text-[#F7F4EF] font-bold">{a.student_name}</span> (
-                                {a.student_email})
-                              </p>
-                              <p className="mt-1 text-[11px] text-[#8C867E] dark:text-[#8E8982]">
-                                Submission #{a.submission_id} · Requested{" "}
-                                {new Date(a.requested_at).toLocaleString()}
-                              </p>
                             </div>
-
-                            <span
-                              className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                                a.status === "PENDING"
-                                  ? "badge-warning"
-                                  : a.status === "APPROVED"
-                                  ? "badge-success"
-                                  : "badge-danger"
-                              }`}
-                            >
-                              {a.status}
-                            </span>
+                            <p className="mt-1.5 text-xs text-[#706C65] dark:text-[#A5A29C]">
+                              Candidate:{" "}
+                              <span className="text-[#191919] dark:text-[#F7F4EF] font-bold">{a.student_name}</span> (
+                              {a.student_email}) · Enrollment:{" "}
+                              <span className="font-mono text-[#191919] dark:text-[#F7F4EF]">
+                                {a.enrollment_number || `ID #${a.student_id}`}
+                              </span>
+                            </p>
+                            <p className="mt-1 text-[11px] text-[#8C867E] dark:text-[#8E8982]">
+                              Practicals Completed:{" "}
+                              <span className="font-bold text-[#D94F16] dark:text-[#FF6B2C]">
+                                {a.completed_required ?? a.total_required} / {a.total_required} (100% verified)
+                              </span>{" "}
+                              · Requested: {new Date(a.requested_at).toLocaleString()}
+                            </p>
                           </div>
 
-                          {a.status === "PENDING" && (
-                            <div className="mt-4 pt-3 border-t border-[#E4DDD2] dark:border-[#2D2D2D]">
-                              <input
-                                value={reviewNotes[a.id] || ""}
-                                onChange={(e) =>
-                                  setReviewNotes((x) => ({ ...x, [a.id]: e.target.value }))
-                                }
-                                placeholder="Optional evaluation note..."
-                                className="input-field text-xs mb-3"
-                              />
-                              <div className="flex gap-2">
-                                <button
-                                  disabled={busy}
-                                  onClick={() => void reviewCertificate(a.id, "APPROVE")}
-                                  className="btn-primary !py-2 !px-4 !text-xs font-bold"
-                                >
-                                  Approve & Sign Certificate (Ed25519)
-                                </button>
-                                <button
-                                  disabled={busy}
-                                  onClick={() => void reviewCertificate(a.id, "REJECT")}
-                                  className="btn-secondary !py-2 !px-4 !text-xs font-bold text-rose-700 dark:text-rose-400"
-                                >
-                                  Reject
-                                </button>
-                              </div>
+                          <span
+                            className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                              a.status === "PENDING"
+                                ? "badge-warning"
+                                : a.status === "APPROVED"
+                                ? "badge-success"
+                                : "badge-danger"
+                            }`}
+                          >
+                            {a.status}
+                          </span>
+                        </div>
+
+                        {a.status === "PENDING" && (
+                          <div className="mt-4 pt-3 border-t border-[#E4DDD2] dark:border-[#2D2D2D]">
+                            <input
+                              value={subjectReviewNotes[a.id] || ""}
+                              onChange={(e) =>
+                                setSubjectReviewNotes((x) => ({ ...x, [a.id]: e.target.value }))
+                              }
+                              placeholder="Faculty review note (required if rejecting)..."
+                              className="input-field text-xs mb-3"
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                disabled={busy}
+                                onClick={() => void reviewSubjectCertificate(a.id, "APPROVE")}
+                                className="btn-primary !py-2 !px-4 !text-xs font-bold"
+                              >
+                                Approve &amp; Issue Subject Certificate (Ed25519)
+                              </button>
+                              <button
+                                disabled={busy}
+                                onClick={() => void reviewSubjectCertificate(a.id, "REJECT")}
+                                className="btn-secondary !py-2 !px-4 !text-xs font-bold text-rose-700 dark:text-rose-400"
+                              >
+                                Reject Request
+                              </button>
                             </div>
-                          )}
-                        </article>
-                      ))}
-                    </div>
-                  ) : (
-                    <Empty
-                      title="No Pending Requests"
-                      text="When students complete all required practicals in a lab module, certificate approval requests appear here."
-                    />
-                  )}
-                </div>
-              )}
+                          </div>
+                        )}
+
+                        {a.status !== "PENDING" && a.review_note && (
+                          <div className="mt-3 pt-2 border-t border-[#E4DDD2] dark:border-[#2D2D2D] text-xs text-[#706C65] dark:text-[#A5A29C]">
+                            <span className="font-bold text-[#191919] dark:text-[#F7F4EF]">Review Note:</span>{" "}
+                            {a.review_note}
+                          </div>
+                        )}
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <Empty
+                    title="No Subject Certificate Requests"
+                    text="When students complete 100% of the required practicals for an assigned subject and request verification, their certification requests appear here."
+                  />
+                )}
+              </div>
             </section>
           )}
 

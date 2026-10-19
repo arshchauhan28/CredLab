@@ -76,10 +76,14 @@ class CertificatePublicResponse(BaseModel):
     certificate_id: str
     student_name: str
     course_code: str
-    lab_title: str
-    practical_title: str
-    score: float
-    passing_threshold: float
+    course_name: Optional[str] = ""
+    certificate_type: Optional[str] = "PRACTICAL"
+    lab_title: Optional[str] = ""
+    practical_title: Optional[str] = ""
+    score: Optional[float] = 100.0
+    passing_threshold: Optional[float] = 100.0
+    completed_practicals_count: Optional[int] = None
+    total_practicals_count: Optional[int] = None
     completed_at: str
     issued_at: str
     issuer: str
