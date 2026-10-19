@@ -14,6 +14,7 @@ import { BadgeRenderer, downloadBadgePng } from "@/components/BadgeRenderer";
 import { BadgeModal } from "@/components/BadgeModal";
 import { CertificateRenderer } from "@/components/CertificateRenderer";
 import { CertificateModal } from "@/components/CertificateModal";
+import { PracticeArena } from "@/components/PracticeArena";
 import {
   Award,
   ShieldCheck,
@@ -25,6 +26,10 @@ import {
   ArrowRight,
   Eye,
   BookOpen,
+  LayoutDashboard,
+  Code2,
+  BarChart3,
+  User as UserIcon,
 } from "lucide-react";
 
 type Course = {
@@ -167,7 +172,41 @@ type BadgeItem = {
   meta?: Record<string, unknown> | null;
 };
 
-type Tab = "Overview" | "My Labs" | "Submissions" | "Statistics" | "Achievements" | "Profile";
+type Tab = "Overview" | "My Labs" | "Practice Arena" | "Submissions" | "Statistics" | "Achievements" | "Profile";
+
+const VALID_TABS: Record<string, Tab> = {
+  overview: "Overview",
+  "my-labs": "My Labs",
+  mylabs: "My Labs",
+  "practice-arena": "Practice Arena",
+  practice: "Practice Arena",
+  "practice_arena": "Practice Arena",
+  submissions: "Submissions",
+  statistics: "Statistics",
+  stats: "Statistics",
+  achievements: "Achievements",
+  profile: "Profile",
+};
+
+const TAB_TO_SLUG: Record<Tab, string> = {
+  Overview: "overview",
+  "My Labs": "my-labs",
+  "Practice Arena": "practice-arena",
+  Submissions: "submissions",
+  Statistics: "statistics",
+  Achievements: "achievements",
+  Profile: "profile",
+};
+
+const TAB_ICONS: Record<Tab, React.ComponentType<{ className?: string }>> = {
+  Overview: LayoutDashboard,
+  "My Labs": BookOpen,
+  "Practice Arena": Code2,
+  Submissions: CheckCircle2,
+  Statistics: BarChart3,
+  Achievements: Award,
+  Profile: UserIcon,
+};
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
@@ -231,6 +270,32 @@ export default function StudentDashboardPage() {
   const [tab, setTab] = useState<Tab>("Overview");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const handleTabChange = useCallback((newTab: Tab) => {
+    setTab(newTab);
+    if (typeof window !== "undefined") {
+      const slug = TAB_TO_SLUG[newTab] || "overview";
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", slug);
+      window.history.replaceState(null, "", url.toString());
+    }
+  }, []);
+
+  // Sync tab with URL search parameter or hash for direct route access and page refresh
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab")?.toLowerCase();
+      if (tabParam && VALID_TABS[tabParam]) {
+        setTab(VALID_TABS[tabParam]);
+      } else {
+        const hash = window.location.hash.replace("#", "").toLowerCase();
+        if (hash && VALID_TABS[hash]) {
+          setTab(VALID_TABS[hash]);
+        }
+      }
+    }
+  }, []);
 
   // Academic Course & Lab Data
   const [courses, setCourses] = useState<Course[]>([]);
@@ -945,7 +1010,15 @@ export default function StudentDashboardPage() {
     );
   }
 
-  const tabs: Tab[] = ["Overview", "My Labs", "Submissions", "Statistics", "Achievements", "Profile"];
+  const tabs: Tab[] = [
+    "Overview",
+    "My Labs",
+    "Practice Arena",
+    "Submissions",
+    "Statistics",
+    "Achievements",
+    "Profile",
+  ];
   const allPracticals = Object.values(practicalsByLab).flat();
   const completedCount = allPracticals.filter((p) => p.status === "COMPLETED").length;
   const acceptedSubmissions = submissions.filter((s) => s.status === "ACCEPTED" || s.score === 100);
@@ -1013,25 +1086,29 @@ export default function StudentDashboardPage() {
           className="mt-6 flex gap-1.5 overflow-x-auto rounded-2xl p-1.5 bg-[#FFFCF6] dark:bg-[#151515] border border-[#E4DDD2] dark:border-[#2D2D2D]"
           aria-label="Student Navigation"
         >
-          {tabs.map((item) => (
-            <button
-              key={item}
-              onClick={() => {
-                setTab(item);
-                if (item === "My Labs" && !selectedLab && allLabs.length > 0) {
-                  selectLab(allLabs[0].id);
-                }
-              }}
-              className={`shrink-0 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
-                tab === item
-                  ? "text-white shadow-sm"
-                  : "text-[#706C65] dark:text-[#A5A29C] hover:bg-[#EEE8DE]/60 dark:hover:bg-[#202020] hover:text-[#D94F16] dark:hover:text-[#FF6B2C]"
-              }`}
-              style={tab === item ? { background: "var(--primary-gradient)" } : undefined}
-            >
-              {item}
-            </button>
-          ))}
+          {tabs.map((item) => {
+            const Icon = TAB_ICONS[item];
+            return (
+              <button
+                key={item}
+                onClick={() => {
+                  handleTabChange(item);
+                  if (item === "My Labs" && !selectedLab && allLabs.length > 0) {
+                    selectLab(allLabs[0].id);
+                  }
+                }}
+                className={`shrink-0 flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+                  tab === item
+                    ? "text-white shadow-sm"
+                    : "text-[#706C65] dark:text-[#A5A29C] hover:bg-[#EEE8DE]/60 dark:hover:bg-[#202020] hover:text-[#D94F16] dark:hover:text-[#FF6B2C]"
+                }`}
+                style={tab === item ? { background: "var(--primary-gradient)" } : undefined}
+              >
+                {Icon && <Icon className="h-3.5 w-3.5" />}
+                <span>{item}</span>
+              </button>
+            );
+          })}
         </nav>
 
         {profileMessage && (
@@ -1086,15 +1163,24 @@ export default function StudentDashboardPage() {
                   </p>
                 </div>
 
-                <button
-                  onClick={() => {
-                    setTab("My Labs");
-                    if (allLabs.length) selectLab(allLabs[0].id);
-                  }}
-                  className="btn-primary !py-2 !px-4 !text-xs font-bold"
-                >
-                  Enter Code Editor →
-                </button>
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <button
+                    onClick={() => handleTabChange("Practice Arena")}
+                    className="btn-secondary !py-2 !px-3.5 !text-xs font-bold flex items-center gap-1.5"
+                  >
+                    <Code2 className="h-3.5 w-3.5 text-[#FF8A3D]" />
+                    <span>Practice Arena</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleTabChange("My Labs");
+                      if (allLabs.length) selectLab(allLabs[0].id);
+                    }}
+                    className="btn-primary !py-2 !px-4 !text-xs font-bold"
+                  >
+                    Enter Code Editor →
+                  </button>
+                </div>
               </div>
 
               {allLabs.length > 0 ? (
@@ -1104,7 +1190,7 @@ export default function StudentDashboardPage() {
                       key={lab.id}
                       onClick={() => {
                         selectLab(lab.id);
-                        setTab("My Labs");
+                        handleTabChange("My Labs");
                       }}
                       className="lux-card p-5 text-left transition-all card-hover border border-[#E4DDD2] dark:border-[#2D2D2D] bg-[#FFFCF6] dark:bg-[#1B1B1B]"
                     >
@@ -1748,6 +1834,13 @@ export default function StudentDashboardPage() {
                 )}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ───────────────── TAB: PRACTICE ARENA ───────────────── */}
+        {tab === "Practice Arena" && (
+          <div className="mt-6 space-y-6 animate-fade-in">
+            <PracticeArena user={user} api={api} />
           </div>
         )}
 
